@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1091479524151",
+    "project_id": "localservieceapp",
+    "storage_bucket": "localservieceapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1091479524151:android:72fbf3593bdd88f5eb80b2",
+        "android_client_info": {
+          "package_name": "com.example.local_serviece_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCw9zrTqxESb_0jkA1qp47A0NhVN71yo-8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
