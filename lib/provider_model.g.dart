@@ -50,7 +50,7 @@ class ProviderModelAdapter extends TypeAdapter<ProviderModel> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is ProviderModelAdapter &&
-          runtimeType == other.runtimeType &&
-          typeId == other.typeId;
+          other is ProviderModelAdapter &&
+              runtimeType == other.runtimeType &&
+              typeId == other.typeId;
 }

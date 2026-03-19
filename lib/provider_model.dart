@@ -4,7 +4,6 @@ part 'provider_model.g.dart';
 
 @HiveType(typeId: 0)
 class ProviderModel extends HiveObject {
-
   @HiveField(0)
   String name;
 
@@ -35,5 +34,10 @@ class ProviderModel extends HiveObject {
   double get averageRating {
     if (ratingCount == 0) return 0;
     return totalRating / ratingCount;
+  }
+
+  String get displayRating {
+    if (ratingCount == 0) return 'New';
+    return averageRating.toStringAsFixed(1);
   }
 }
