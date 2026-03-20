@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'provider_model.dart';
 import 'booking_model.dart';
+import 'review_model.dart';
 import 'auth_gate.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -22,7 +23,6 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
-
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
@@ -34,26 +34,20 @@ class _SplashScreenState extends State<SplashScreen>
       CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
     );
     _controller.forward();
-
     _initApp();
   }
 
   Future<void> _initApp() async {
     final stopwatch = Stopwatch()..start();
 
-    // Run Firebase + Hive init in parallel
     await Future.wait([
-      Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      ),
+      Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform),
       _initHive(),
     ]);
 
-    // Make sure splash shows for at least 3 seconds
     final elapsed = stopwatch.elapsedMilliseconds;
     if (elapsed < 3000) {
-      await Future.delayed(
-          Duration(milliseconds: 3000 - elapsed));
+      await Future.delayed(Duration(milliseconds: 3000 - elapsed));
     }
 
     if (mounted) {
@@ -71,18 +65,13 @@ class _SplashScreenState extends State<SplashScreen>
 
   Future<void> _initHive() async {
     await Hive.initFlutter();
-    if (!Hive.isAdapterRegistered(0)) {
-      Hive.registerAdapter(ProviderModelAdapter());
-    }
-    if (!Hive.isAdapterRegistered(1)) {
-      Hive.registerAdapter(BookingModelAdapter());
-    }
-    if (!Hive.isBoxOpen('providers')) {
-      await Hive.openBox<ProviderModel>('providers');
-    }
-    if (!Hive.isBoxOpen('bookings')) {
-      await Hive.openBox<BookingModel>('bookings');
-    }
+    if (!Hive.isAdapterRegistered(0)) Hive.registerAdapter(ProviderModelAdapter());
+    if (!Hive.isAdapterRegistered(1)) Hive.registerAdapter(BookingModelAdapter());
+    if (!Hive.isAdapterRegistered(2)) Hive.registerAdapter(ReviewModelAdapter());
+    if (!Hive.isBoxOpen('providers')) await Hive.openBox<ProviderModel>('providers');
+    if (!Hive.isBoxOpen('bookings')) await Hive.openBox<BookingModel>('bookings');
+    if (!Hive.isBoxOpen('reviews')) await Hive.openBox<ReviewModel>('reviews');
+    if (!Hive.isBoxOpen('favourites')) await Hive.openBox<String>('favourites');
   }
 
   @override
@@ -117,31 +106,22 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                 ),
                 const SizedBox(height: 28),
-                const Text(
-                  'Local Service',
-                  style: TextStyle(
-                    fontSize: 30,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                    letterSpacing: 0.5,
-                  ),
-                ),
+                const Text('Local Service',
+                    style: TextStyle(
+                        fontSize: 30,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        letterSpacing: 0.5)),
                 const SizedBox(height: 8),
-                const Text(
-                  'Professional help at your doorstep',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.white70,
-                  ),
-                ),
+                const Text('Professional help at your doorstep',
+                    style: TextStyle(fontSize: 14, color: Colors.white70)),
                 const SizedBox(height: 60),
                 const SizedBox(
                   width: 28,
                   height: 28,
                   child: CircularProgressIndicator(
                     strokeWidth: 2.5,
-                    valueColor:
-                    AlwaysStoppedAnimation<Color>(Colors.white70),
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
                   ),
                 ),
               ],

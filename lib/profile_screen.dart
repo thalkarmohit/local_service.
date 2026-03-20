@@ -1,7 +1,13 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'auth_service.dart';
 import 'provider_registration_screen.dart';
+import 'provider_model.dart';
+import 'provider_details_screen.dart';
+import 'main.dart';
+import 'register_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -12,15 +18,21 @@ class ProfileScreen extends StatelessWidget {
     final name = user?.displayName ?? 'User';
     final email = user?.email ?? '';
     final initials = name.trim().split(' ').take(2)
-        .map((w) => w.isNotEmpty ? w[0].toUpperCase() : '')
-        .join();
+        .map((w) => w.isNotEmpty ? w[0].toUpperCase() : '').join();
+    final isDark = MyApp.of(context)?.isDarkMode ?? false;
+    final isGuest = AuthService().isGuest;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FB),
       appBar: AppBar(
         title: const Text('Profile'),
-        backgroundColor: const Color(0xFF1565C0),
-        foregroundColor: Colors.white,
+        actions: [
+          // Dark mode toggle
+          IconButton(
+            icon: Icon(isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded),
+            onPressed: () => MyApp.of(context)?.toggleTheme(),
+            tooltip: isDark ? 'Light mode' : 'Dark mode',
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -30,24 +42,16 @@ class ProfileScreen extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildMenuCard([
-                    _MenuItem(
-                      icon: Icons.calendar_today_outlined,
-                      label: 'Booking History',
-                      onTap: () => _showComingSoon(context),
-                    ),
+                  if (isGuest) _buildGuestBanner(context),
+                  if (isGuest) const SizedBox(height: 16),
+                  _buildFavouritesSection(context),
+                  const SizedBox(height: 20),
+                  _buildMenuCard(context, [
                     _MenuItem(
                       icon: Icons.notifications_outlined,
                       label: 'Notifications',
-                      onTap: () => _showComingSoon(context),
-                    ),
-                  ]),
-                  const SizedBox(height: 14),
-                  _buildMenuCard([
-                    _MenuItem(
-                      icon: Icons.settings_outlined,
-                      label: 'Settings',
                       onTap: () => _showComingSoon(context),
                     ),
                     _MenuItem(
@@ -65,12 +69,9 @@ class ProfileScreen extends StatelessWidget {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const ProviderRegistrationScreen(),
-                        ),
-                      ),
+                      onPressed: () => Navigator.push(context,
+                          MaterialPageRoute(
+                              builder: (_) => const ProviderRegistrationScreen())),
                       icon: const Icon(Icons.add_business_rounded),
                       label: const Text('Become a Provider'),
                     ),
@@ -89,10 +90,9 @@ class ProfileScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 32),
-                  Text(
-                    'Local Service App v1.0.0',
-                    style: TextStyle(
-                        fontSize: 12, color: Colors.grey.shade400),
+                  Center(
+                    child: Text('Local Service App v1.0.0',
+                        style: TextStyle(fontSize: 12, color: Colors.grey.shade400)),
                   ),
                   const SizedBox(height: 8),
                 ],
@@ -114,38 +114,158 @@ class ProfileScreen extends StatelessWidget {
           CircleAvatar(
             radius: 44,
             backgroundColor: Colors.white24,
-            child: Text(
-              initials,
-              style: const TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-              ),
-            ),
+            child: Text(initials,
+                style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white)),
           ),
           const SizedBox(height: 14),
-          Text(
-            name,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
+          Text(name,
+              style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white)),
+          const SizedBox(height: 4),
+          Text(email,
+              style: const TextStyle(color: Colors.white70, fontSize: 13)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGuestBanner(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFAEEDA),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFEF9F27)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline_rounded,
+              color: Color(0xFF633806), size: 20),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('You are browsing as a guest',
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF633806))),
+                Text('Create an account to save your bookings & reviews.',
+                    style: TextStyle(fontSize: 12, color: Color(0xFF854F0B))),
+              ],
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            email,
-            style: const TextStyle(color: Colors.white70, fontSize: 13),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const RegisterScreen())),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEF9F27),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Text('Sign Up',
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white)),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildMenuCard(List<_MenuItem> items) {
+  Widget _buildFavouritesSection(BuildContext context) {
+    return ValueListenableBuilder(
+      valueListenable: Hive.box<String>('favourites').listenable(),
+      builder: (context, Box<String> favBox, _) {
+        final providerBox = Hive.box<ProviderModel>('providers');
+        final favIds = favBox.values.toList();
+
+        if (favIds.isEmpty) return const SizedBox.shrink();
+
+        final favProviders = providerBox.values
+            .where((p) => favIds.contains(p.key.toString()))
+            .toList();
+
+        if (favProviders.isEmpty) return const SizedBox.shrink();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Favourites',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 12),
+            Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardTheme.color,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFEEEEEE)),
+              ),
+              child: Column(
+                children: favProviders.asMap().entries.map((entry) {
+                  final i = entry.key;
+                  final p = entry.value;
+                  final initials = p.name.trim().split(' ').take(2)
+                      .map((w) => w[0].toUpperCase()).join();
+                  return Column(
+                    children: [
+                      ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: const Color(0xFFE3F2FD),
+                          child: Text(initials,
+                              style: const TextStyle(
+                                  color: Color(0xFF1565C0),
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13)),
+                        ),
+                        title: Text(p.name,
+                            style: const TextStyle(fontWeight: FontWeight.w600)),
+                        subtitle: Text(p.service),
+                        trailing: const Icon(Icons.arrow_forward_ios_rounded,
+                            size: 14, color: Color(0xFFAAAAAA)),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ProviderDetailsScreen(
+                              provider: {
+                                'name': p.name,
+                                'exp': p.exp,
+                                'phone': p.phone,
+                                'id': p.key.toString(),
+                                'rating': p.displayRating,
+                              },
+                              category: p.service,
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (i < favProviders.length - 1)
+                        const Divider(height: 1, indent: 70, color: Color(0xFFF0F0F0)),
+                    ],
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildMenuCard(BuildContext context, List<_MenuItem> items) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFEEEEEE)),
       ),
@@ -163,21 +283,17 @@ class ProfileScreen extends StatelessWidget {
                     color: const Color(0xFFE3F2FD),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(item.icon,
-                      size: 18, color: const Color(0xFF1565C0)),
+                  child: Icon(item.icon, size: 18, color: const Color(0xFF1565C0)),
                 ),
                 title: Text(item.label,
-                    style: const TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w500)),
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
                 trailing: const Icon(Icons.arrow_forward_ios_rounded,
                     size: 14, color: Color(0xFFAAAAAA)),
                 onTap: item.onTap,
-                contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
               ),
               if (i < items.length - 1)
-                const Divider(
-                    height: 1, indent: 68, color: Color(0xFFF0F0F0)),
+                const Divider(height: 1, indent: 68, color: Color(0xFFF0F0F0)),
             ],
           );
         }).toList(),
@@ -189,10 +305,8 @@ class ProfileScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape:
-        RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Log Out',
-            style: TextStyle(fontWeight: FontWeight.w700)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Log Out', style: TextStyle(fontWeight: FontWeight.w700)),
         content: const Text('Are you sure you want to log out?'),
         actions: [
           TextButton(
@@ -207,7 +321,6 @@ class ProfileScreen extends StatelessWidget {
             onPressed: () async {
               Navigator.pop(ctx);
               await AuthService().logout();
-              // AuthGate will automatically redirect to LoginScreen
             },
             child: const Text('Log Out'),
           ),
@@ -217,9 +330,8 @@ class ProfileScreen extends StatelessWidget {
   }
 
   void _showComingSoon(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Coming soon!')),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Coming soon!')));
   }
 
   void _showAbout(BuildContext context) {
@@ -230,8 +342,7 @@ class ProfileScreen extends StatelessWidget {
       applicationLegalese: '© 2025 Local Service App',
       children: [
         const SizedBox(height: 12),
-        const Text(
-            'Find and book trusted local service providers near you.'),
+        const Text('Find and book trusted local service providers near you.'),
       ],
     );
   }
@@ -241,6 +352,5 @@ class _MenuItem {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  const _MenuItem(
-      {required this.icon, required this.label, required this.onTap});
+  const _MenuItem({required this.icon, required this.label, required this.onTap});
 }

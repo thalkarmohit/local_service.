@@ -18,6 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _isLoading = false;
   bool _isGoogleLoading = false;
+  bool _isGuestLoading = false;
   bool _obscurePassword = true;
 
   @override
@@ -30,53 +31,52 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
-
     final error = await _authService.login(
       email: _emailController.text,
       password: _passwordController.text,
     );
-
     if (!mounted) return;
     setState(() => _isLoading = false);
-
     if (error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error)),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error)));
     }
   }
 
   Future<void> _googleSignIn() async {
     setState(() => _isGoogleLoading = true);
-
     final error = await _authService.signInWithGoogle();
-
     if (!mounted) return;
     setState(() => _isGoogleLoading = false);
-
     if (error != null && error != 'Sign-in cancelled.') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error)),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error)));
+    }
+  }
+
+  Future<void> _guestLogin() async {
+    setState(() => _isGuestLoading = true);
+    final error = await _authService.signInAsGuest();
+    if (!mounted) return;
+    setState(() => _isGuestLoading = false);
+    if (error != null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error)));
     }
   }
 
   Future<void> _forgotPassword() async {
     final email = _emailController.text.trim();
     if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Enter your email first, then tap Forgot Password.')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Enter your email first, then tap Forgot Password.')));
       return;
     }
     final error = await _authService.resetPassword(email);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-          content:
-          Text(error ?? 'Password reset email sent! Check your inbox.')),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content:
+        Text(error ?? 'Password reset email sent! Check your inbox.')));
   }
 
   @override
@@ -102,9 +102,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 28),
                 _buildLoginButton(),
                 const SizedBox(height: 20),
-                _buildDivider(),
+                _buildDivider('or continue with'),
                 const SizedBox(height: 20),
                 _buildGoogleButton(),
+                const SizedBox(height: 12),
+                _buildGuestButton(),
                 const SizedBox(height: 24),
                 _buildRegisterLink(),
               ],
@@ -126,29 +128,19 @@ class _LoginScreenState extends State<LoginScreen> {
             color: const Color(0xFF1565C0),
             borderRadius: BorderRadius.circular(16),
           ),
-          child: const Icon(
-            Icons.home_repair_service_rounded,
-            color: Colors.white,
-            size: 30,
-          ),
+          child: const Icon(Icons.home_repair_service_rounded,
+              color: Colors.white, size: 30),
         ),
         const SizedBox(height: 24),
-        Text(
-          'Welcome back',
-          style: GoogleFonts.poppins(
-            fontSize: 28,
-            fontWeight: FontWeight.w700,
-            color: const Color(0xFF1A1A2E),
-          ),
-        ),
+        Text('Welcome back',
+            style: GoogleFonts.poppins(
+                fontSize: 28,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF1A1A2E))),
         const SizedBox(height: 6),
-        Text(
-          'Sign in to book local services',
-          style: GoogleFonts.poppins(
-            fontSize: 15,
-            color: const Color(0xFF888888),
-          ),
-        ),
+        Text('Sign in to book local services',
+            style: GoogleFonts.poppins(
+                fontSize: 15, color: const Color(0xFF888888))),
       ],
     );
   }
@@ -210,14 +202,11 @@ class _LoginScreenState extends State<LoginScreen> {
           minimumSize: Size.zero,
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
-        child: const Text(
-          'Forgot password?',
-          style: TextStyle(
-            color: Color(0xFF1565C0),
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
+        child: const Text('Forgot password?',
+            style: TextStyle(
+                color: Color(0xFF1565C0),
+                fontSize: 13,
+                fontWeight: FontWeight.w500)),
       ),
     );
   }
@@ -227,25 +216,22 @@ class _LoginScreenState extends State<LoginScreen> {
       onPressed: _isLoading ? null : _login,
       child: _isLoading
           ? const SizedBox(
-        height: 20,
-        width: 20,
-        child: CircularProgressIndicator(
-            strokeWidth: 2, color: Colors.white),
-      )
+          height: 20,
+          width: 20,
+          child: CircularProgressIndicator(
+              strokeWidth: 2, color: Colors.white))
           : const Text('Sign In'),
     );
   }
 
-  Widget _buildDivider() {
+  Widget _buildDivider(String label) {
     return Row(
       children: [
         const Expanded(child: Divider(color: Color(0xFFDDDDDD))),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Text(
-            'or continue with',
-            style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
-          ),
+          child: Text(label,
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade500)),
         ),
         const Expanded(child: Divider(color: Color(0xFFDDDDDD))),
       ],
@@ -261,48 +247,65 @@ class _LoginScreenState extends State<LoginScreen> {
         style: OutlinedButton.styleFrom(
           foregroundColor: const Color(0xFF1A1A2E),
           side: const BorderSide(color: Color(0xFFDDDDDD), width: 1.5),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           backgroundColor: Colors.white,
         ),
         child: _isGoogleLoading
             ? const SizedBox(
-          height: 20,
-          width: 20,
-          child: CircularProgressIndicator(
-              strokeWidth: 2, color: Color(0xFF1565C0)),
-        )
+            height: 20,
+            width: 20,
+            child: CircularProgressIndicator(
+                strokeWidth: 2, color: Color(0xFF1565C0)))
             : Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Google "G" logo drawn with text styling
-            Container(
-              width: 22,
-              height: 22,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: const Text(
-                'G',
-                textAlign: TextAlign.center,
+          children: const [
+            Text('G',
                 style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF4285F4),
-                  height: 1.2,
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            const Text(
-              'Continue with Google',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF1A1A2E),
-              ),
-            ),
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF4285F4))),
+            SizedBox(width: 10),
+            Text('Continue with Google',
+                style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF1A1A2E))),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGuestButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: OutlinedButton(
+        onPressed: _isGuestLoading ? null : _guestLogin,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: const Color(0xFF555555),
+          side: const BorderSide(color: Color(0xFFDDDDDD), width: 1.5),
+          shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          backgroundColor: Colors.white,
+        ),
+        child: _isGuestLoading
+            ? const SizedBox(
+            height: 20,
+            width: 20,
+            child: CircularProgressIndicator(
+                strokeWidth: 2, color: Color(0xFF888888)))
+            : const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.person_outline_rounded,
+                size: 20, color: Color(0xFF888888)),
+            SizedBox(width: 10),
+            Text('Continue as Guest',
+                style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF555555))),
           ],
         ),
       ),
@@ -313,23 +316,16 @@ class _LoginScreenState extends State<LoginScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text(
-          "Don't have an account? ",
-          style: TextStyle(color: Color(0xFF888888), fontSize: 14),
-        ),
+        const Text("Don't have an account? ",
+            style: TextStyle(color: Color(0xFF888888), fontSize: 14)),
         GestureDetector(
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const RegisterScreen()),
-          ),
-          child: const Text(
-            'Sign Up',
-            style: TextStyle(
-              color: Color(0xFF1565C0),
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          onTap: () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const RegisterScreen())),
+          child: const Text('Sign Up',
+              style: TextStyle(
+                  color: Color(0xFF1565C0),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600)),
         ),
       ],
     );

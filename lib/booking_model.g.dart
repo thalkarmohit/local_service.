@@ -21,13 +21,16 @@ class BookingModelAdapter extends TypeAdapter<BookingModel> {
       service: fields[1] as String,
       phone: fields[2] as String,
       bookingDate: fields[3] as DateTime,
+      status: fields[4] == null ? 'pending' : fields[4] as String,
+      scheduledDate: fields[5] as DateTime?,
+      scheduledTime: fields[6] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, BookingModel obj) {
     writer
-      ..writeByte(4)
+      ..writeByte(7)
       ..writeByte(0)
       ..write(obj.providerName)
       ..writeByte(1)
@@ -35,7 +38,13 @@ class BookingModelAdapter extends TypeAdapter<BookingModel> {
       ..writeByte(2)
       ..write(obj.phone)
       ..writeByte(3)
-      ..write(obj.bookingDate);
+      ..write(obj.bookingDate)
+      ..writeByte(4)
+      ..write(obj.status)
+      ..writeByte(5)
+      ..write(obj.scheduledDate)
+      ..writeByte(6)
+      ..write(obj.scheduledTime);
   }
 
   @override
@@ -44,7 +53,7 @@ class BookingModelAdapter extends TypeAdapter<BookingModel> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is BookingModelAdapter &&
-          runtimeType == other.runtimeType &&
-          typeId == other.typeId;
+          other is BookingModelAdapter &&
+              runtimeType == other.runtimeType &&
+              typeId == other.typeId;
 }

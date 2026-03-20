@@ -4,8 +4,16 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'booking_model.dart';
 
-class BookingsScreen extends StatelessWidget {
+class BookingsScreen extends StatefulWidget {
   const BookingsScreen({super.key});
+
+  @override
+  State<BookingsScreen> createState() => _BookingsScreenState();
+}
+
+class _BookingsScreenState extends State<BookingsScreen> {
+  String _selectedFilter = 'All';
+  final List<String> _filters = ['All', 'Pending', 'Confirmed', 'Cancelled'];
 
   @override
   Widget build(BuildContext context) {
@@ -18,31 +26,83 @@ class BookingsScreen extends StatelessWidget {
         backgroundColor: const Color(0xFF1565C0),
         foregroundColor: Colors.white,
       ),
-      body: ValueListenableBuilder(
-        valueListenable: box.listenable(),
-        builder: (context, Box<BookingModel> box, _) {
-          if (box.isEmpty) {
-            return _buildEmptyState(context);
-          }
+      body: Column(
+        children: [
+          // Filter tabs
+          Container(
+            color: const Color(0xFF1565C0),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: _filters.map((filter) {
+                  final isSelected = _selectedFilter == filter;
+                  return GestureDetector(
+                    onTap: () => setState(() => _selectedFilter = filter),
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? Colors.white
+                            : Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        filter,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: isSelected
+                              ? const Color(0xFF1565C0)
+                              : Colors.white,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
 
-          final bookings = box.keys
-              .map((k) => MapEntry(k, box.get(k)!))
-              .toList()
-              .reversed
-              .toList();
+          // Bookings list
+          Expanded(
+            child: ValueListenableBuilder(
+              valueListenable: box.listenable(),
+              builder: (context, Box<BookingModel> box, _) {
+                var bookings = box.keys
+                    .map((k) => MapEntry(k, box.get(k)!))
+                    .toList()
+                    .reversed
+                    .toList();
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: bookings.length,
-            itemBuilder: (context, index) =>
-                _buildBookingCard(context, box, bookings[index]),
-          );
-        },
+                // Apply filter
+                if (_selectedFilter != 'All') {
+                  bookings = bookings
+                      .where((e) =>
+                  e.value.status.toLowerCase() ==
+                      _selectedFilter.toLowerCase())
+                      .toList();
+                }
+
+                if (bookings.isEmpty) return _buildEmptyState();
+
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: bookings.length,
+                  itemBuilder: (context, index) =>
+                      _buildBookingCard(context, box, bookings[index]),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildEmptyState(BuildContext context) {
+  Widget _buildEmptyState() {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -51,16 +111,19 @@ class BookingsScreen extends StatelessWidget {
               size: 72, color: Colors.grey.shade300),
           const SizedBox(height: 16),
           Text(
-            'No bookings yet',
+            _selectedFilter == 'All'
+                ? 'No bookings yet'
+                : 'No $_selectedFilter bookings',
             style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey.shade400,
-            ),
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey.shade400),
           ),
           const SizedBox(height: 6),
           Text(
-            'Your booked services will appear here',
+            _selectedFilter == 'All'
+                ? 'Your booked services will appear here'
+                : 'No bookings with this status',
             style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
           ),
         ],
@@ -72,9 +135,8 @@ class BookingsScreen extends StatelessWidget {
       BuildContext context, Box<BookingModel> box, MapEntry entry) {
     final booking = entry.value as BookingModel;
     final key = entry.key;
-
-    final dateStr = DateFormat('d MMM yyyy, h:mm a').format(booking.bookingDate);
-    final status = booking.status;
+    final bookedOn =
+    DateFormat('d MMM yyyy, h:mm a').format(booking.bookingDate);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -92,19 +154,49 @@ class BookingsScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
-                  child: Text(
-                    booking.providerName,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1A1A2E),
-                    ),
-                  ),
+                  child: Text(booking.providerName,
+                      style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1A1A2E))),
                 ),
-                _buildStatusBadge(status),
+                _buildStatusBadge(booking.status),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
+            if (booking.scheduledDate != null && booking.scheduledTime != null) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE3F2FD),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.event_rounded,
+                        size: 18, color: Color(0xFF1565C0)),
+                    const SizedBox(width: 10),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Scheduled for',
+                            style: TextStyle(
+                                fontSize: 11, color: Color(0xFF1565C0))),
+                        Text(
+                          '${DateFormat('EEEE, d MMMM yyyy').format(booking.scheduledDate!)}  •  ${booking.scheduledTime}',
+                          style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF1565C0)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
             Row(
               children: [
                 const Icon(Icons.category_outlined,
@@ -121,9 +213,9 @@ class BookingsScreen extends StatelessWidget {
                 const Icon(Icons.access_time_rounded,
                     size: 14, color: Color(0xFFAAAAAA)),
                 const SizedBox(width: 6),
-                Text(dateStr,
+                Text('Booked on $bookedOn',
                     style: const TextStyle(
-                        fontSize: 13, color: Color(0xFF888888))),
+                        fontSize: 12, color: Color(0xFF888888))),
               ],
             ),
             const SizedBox(height: 12),
@@ -181,7 +273,6 @@ class BookingsScreen extends StatelessWidget {
     Color textColor;
     String label;
     IconData icon;
-
     switch (status) {
       case 'confirmed':
         bg = const Color(0xFFEAF3DE);
@@ -201,13 +292,10 @@ class BookingsScreen extends StatelessWidget {
         label = 'Pending';
         icon = Icons.schedule_rounded;
     }
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(20),
-      ),
+      decoration:
+      BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -228,7 +316,8 @@ class BookingsScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape:
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Cancel Booking',
             style: TextStyle(fontWeight: FontWeight.w700)),
         content: const Text('Are you sure you want to cancel this booking?'),

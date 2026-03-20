@@ -9,6 +9,9 @@ class AuthService {
 
   User? get currentUser => _auth.currentUser;
 
+  bool get isGuest => _auth.currentUser?.isAnonymous ?? false;
+
+  // ─── Email/Password Register ───────────────────────────────────────────────
   Future<String?> register({
     required String email,
     required String password,
@@ -35,6 +38,7 @@ class AuthService {
     }
   }
 
+  // ─── Email/Password Login ──────────────────────────────────────────────────
   Future<String?> login({
     required String email,
     required String password,
@@ -63,6 +67,22 @@ class AuthService {
     }
   }
 
+  // ─── Guest Login ───────────────────────────────────────────────────────────
+  Future<String?> signInAsGuest() async {
+    try {
+      await _auth.signInAnonymously();
+      return null;
+    } on FirebaseAuthException catch (e) {
+      switch (e.code) {
+        case 'operation-not-allowed':
+          return 'Guest login is not enabled. Please contact support.';
+        default:
+          return 'Guest login failed. Please try again.';
+      }
+    }
+  }
+
+  // ─── Google Sign-In ────────────────────────────────────────────────────────
   Future<String?> signInWithGoogle() async {
     try {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
@@ -92,6 +112,7 @@ class AuthService {
     }
   }
 
+  // ─── Password Reset ────────────────────────────────────────────────────────
   Future<String?> resetPassword(String email) async {
     try {
       await _auth.sendPasswordResetEmail(email: email.trim());
@@ -108,6 +129,7 @@ class AuthService {
     }
   }
 
+  // ─── Logout ────────────────────────────────────────────────────────────────
   Future<void> logout() async {
     await _googleSignIn.signOut();
     await _auth.signOut();
