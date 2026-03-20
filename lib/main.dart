@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
 import 'provider_model.dart';
 import 'booking_model.dart';
-import 'auth_gate.dart';
+import 'splashscreen.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
   SystemChrome.setSystemUIOverlayStyle(
@@ -18,18 +14,7 @@ void main() async {
     ),
   );
 
-  // Initialize Firebase
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-
-  // Initialize Hive
-  await Hive.initFlutter();
-  Hive.registerAdapter(ProviderModelAdapter());
-  Hive.registerAdapter(BookingModelAdapter());
-  await Hive.openBox<ProviderModel>('providers');
-  await Hive.openBox<BookingModel>('bookings');
-
+  // Run app immediately — all heavy init happens inside SplashScreen
   runApp(const MyApp());
 }
 
@@ -42,7 +27,7 @@ class MyApp extends StatelessWidget {
       title: 'Local Service',
       debugShowCheckedModeBanner: false,
       theme: _buildTheme(),
-      home: const AuthGate(), // ← replaces SplashScreen
+      home: const SplashScreen(),
     );
   }
 
@@ -60,18 +45,18 @@ class MyApp extends StatelessWidget {
         surface: Colors.white,
       ),
       scaffoldBackgroundColor: bgColor,
-      textTheme: GoogleFonts.poppinsTextTheme(),
-      appBarTheme: AppBarTheme(
+      appBarTheme: const AppBarTheme(
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: false,
-        titleTextStyle: GoogleFonts.poppins(
+        titleTextStyle: TextStyle(
           color: Colors.white,
           fontSize: 18,
           fontWeight: FontWeight.w600,
+          fontFamily: 'sans-serif',
         ),
-        systemOverlayStyle: const SystemUiOverlayStyle(
+        systemOverlayStyle: SystemUiOverlayStyle(
           statusBarColor: Colors.transparent,
           statusBarIconBrightness: Brightness.light,
         ),
@@ -85,10 +70,6 @@ class MyApp extends StatelessWidget {
             borderRadius: BorderRadius.circular(14),
           ),
           elevation: 0,
-          textStyle: GoogleFonts.poppins(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-          ),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -98,10 +79,6 @@ class MyApp extends StatelessWidget {
           side: const BorderSide(color: primaryColor, width: 1.5),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
-          ),
-          textStyle: GoogleFonts.poppins(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
           ),
         ),
       ),
@@ -145,8 +122,8 @@ class MyApp extends StatelessWidget {
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        shape:
-        RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12)),
         backgroundColor: const Color(0xFF1A1A2E),
       ),
     );

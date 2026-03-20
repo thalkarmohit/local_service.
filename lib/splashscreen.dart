@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
-import 'dart:async';
-import 'package:google_fonts/google_fonts.dart';
-import 'main_navigation.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+import 'provider_model.dart';
+import 'booking_model.dart';
+import 'auth_gate.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -22,32 +25,64 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 900),
+      duration: const Duration(milliseconds: 800),
     );
-
     _fadeAnim = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeIn),
     );
-
-    _scaleAnim = Tween<double>(begin: 0.75, end: 1).animate(
+    _scaleAnim = Tween<double>(begin: 0.8, end: 1).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
     );
-
     _controller.forward();
 
-    Timer(const Duration(seconds: 3), () {
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          PageRouteBuilder(
-            transitionDuration: const Duration(milliseconds: 500),
-            pageBuilder: (_, __, ___) => const MainNavigation(),
-            transitionsBuilder: (_, anim, __, child) =>
-                FadeTransition(opacity: anim, child: child),
-          ),
-        );
-      }
-    });
+    _initApp();
+  }
+
+  Future<void> _initApp() async {
+    final stopwatch = Stopwatch()..start();
+
+    // Run Firebase + Hive init in parallel
+    await Future.wait([
+      Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      ),
+      _initHive(),
+    ]);
+
+    // Make sure splash shows for at least 3 seconds
+    final elapsed = stopwatch.elapsedMilliseconds;
+    if (elapsed < 3000) {
+      await Future.delayed(
+          Duration(milliseconds: 3000 - elapsed));
+    }
+
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        PageRouteBuilder(
+          transitionDuration: const Duration(milliseconds: 500),
+          pageBuilder: (_, __, ___) => const AuthGate(),
+          transitionsBuilder: (_, anim, __, child) =>
+              FadeTransition(opacity: anim, child: child),
+        ),
+      );
+    }
+  }
+
+  Future<void> _initHive() async {
+    await Hive.initFlutter();
+    if (!Hive.isAdapterRegistered(0)) {
+      Hive.registerAdapter(ProviderModelAdapter());
+    }
+    if (!Hive.isAdapterRegistered(1)) {
+      Hive.registerAdapter(BookingModelAdapter());
+    }
+    if (!Hive.isBoxOpen('providers')) {
+      await Hive.openBox<ProviderModel>('providers');
+    }
+    if (!Hive.isBoxOpen('bookings')) {
+      await Hive.openBox<BookingModel>('bookings');
+    }
   }
 
   @override
@@ -74,13 +109,6 @@ class _SplashScreenState extends State<SplashScreen>
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(28),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.15),
-                        blurRadius: 24,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
                   ),
                   child: const Icon(
                     Icons.home_repair_service_rounded,
@@ -89,9 +117,9 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                 ),
                 const SizedBox(height: 28),
-                Text(
+                const Text(
                   'Local Service',
-                  style: GoogleFonts.poppins(
+                  style: TextStyle(
                     fontSize: 30,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
@@ -99,23 +127,21 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text(
+                const Text(
                   'Professional help at your doorstep',
-                  style: GoogleFonts.poppins(
+                  style: TextStyle(
                     fontSize: 14,
-                    color: Colors.white.withOpacity(0.75),
-                    fontWeight: FontWeight.w400,
+                    color: Colors.white70,
                   ),
                 ),
                 const SizedBox(height: 60),
-                SizedBox(
+                const SizedBox(
                   width: 28,
                   height: 28,
                   child: CircularProgressIndicator(
                     strokeWidth: 2.5,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      Colors.white.withOpacity(0.7),
-                    ),
+                    valueColor:
+                    AlwaysStoppedAnimation<Color>(Colors.white70),
                   ),
                 ),
               ],
