@@ -1,4 +1,6 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'auth_service.dart';
 import 'provider_registration_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -6,6 +8,13 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    final name = user?.displayName ?? 'User';
+    final email = user?.email ?? '';
+    final initials = name.trim().split(' ').take(2)
+        .map((w) => w.isNotEmpty ? w[0].toUpperCase() : '')
+        .join();
+
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6FB),
       appBar: AppBar(
@@ -16,7 +25,7 @@ class ProfileScreen extends StatelessWidget {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            _buildProfileHeader(context),
+            _buildProfileHeader(name, email, initials),
             const SizedBox(height: 20),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -26,8 +35,7 @@ class ProfileScreen extends StatelessWidget {
                     _MenuItem(
                       icon: Icons.calendar_today_outlined,
                       label: 'Booking History',
-                      onTap: () => Navigator.of(context)
-                          .pushNamed('/bookings'),
+                      onTap: () => _showComingSoon(context),
                     ),
                     _MenuItem(
                       icon: Icons.notifications_outlined,
@@ -71,7 +79,7 @@ class ProfileScreen extends StatelessWidget {
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
-                      onPressed: () => _showComingSoon(context),
+                      onPressed: () => _confirmLogout(context),
                       icon: const Icon(Icons.logout_rounded),
                       label: const Text('Log Out'),
                       style: OutlinedButton.styleFrom(
@@ -96,49 +104,38 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildProfileHeader(BuildContext context) {
+  Widget _buildProfileHeader(String name, String email, String initials) {
     return Container(
       width: double.infinity,
       color: const Color(0xFF1565C0),
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
       child: Column(
         children: [
-          Stack(
-            children: [
-              const CircleAvatar(
-                radius: 44,
-                backgroundColor: Colors.white24,
-                child: Icon(Icons.person_rounded, size: 48, color: Colors.white),
+          CircleAvatar(
+            radius: 44,
+            backgroundColor: Colors.white24,
+            child: Text(
+              initials,
+              style: const TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
               ),
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: Container(
-                  width: 28,
-                  height: 28,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.edit_rounded,
-                      size: 16, color: Color(0xFF1565C0)),
-                ),
-              ),
-            ],
+            ),
           ),
           const SizedBox(height: 14),
-          const Text(
-            'Guest User',
-            style: TextStyle(
+          Text(
+            name,
+            style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w700,
               color: Colors.white,
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'guest@email.com',
-            style: TextStyle(color: Colors.white70, fontSize: 13),
+          Text(
+            email,
+            style: const TextStyle(color: Colors.white70, fontSize: 13),
           ),
         ],
       ),
@@ -166,8 +163,8 @@ class ProfileScreen extends StatelessWidget {
                     color: const Color(0xFFE3F2FD),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child:
-                  Icon(item.icon, size: 18, color: const Color(0xFF1565C0)),
+                  child: Icon(item.icon,
+                      size: 18, color: const Color(0xFF1565C0)),
                 ),
                 title: Text(item.label,
                     style: const TextStyle(
@@ -188,6 +185,37 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
+  void _confirmLogout(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape:
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Log Out',
+            style: TextStyle(fontWeight: FontWeight.w700)),
+        content: const Text('Are you sure you want to log out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              minimumSize: const Size(80, 40),
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await AuthService().logout();
+              // AuthGate will automatically redirect to LoginScreen
+            },
+            child: const Text('Log Out'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showComingSoon(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Coming soon!')),
@@ -203,7 +231,7 @@ class ProfileScreen extends StatelessWidget {
       children: [
         const SizedBox(height: 12),
         const Text(
-            'Find and book trusted local service providers near you — plumbers, electricians, doctors, and more.'),
+            'Find and book trusted local service providers near you.'),
       ],
     );
   }

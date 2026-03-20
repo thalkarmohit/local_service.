@@ -66,17 +66,19 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
 
   Widget _buildAppBar(BuildContext context) {
     return SliverAppBar(
-      expandedHeight: 200,
+      expandedHeight: 230,
       pinned: true,
       backgroundColor: const Color(0xFF1565C0),
       foregroundColor: Colors.white,
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
-          color: const Color(0xFF1565C0),
+          clipBehavior: Clip.hardEdge,
+          decoration: const BoxDecoration(color: Color(0xFF1565C0)),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              const SizedBox(height: 60),
+              const SizedBox(height: 70),
               CircleAvatar(
                 radius: 44,
                 backgroundColor: Colors.white.withOpacity(0.2),
