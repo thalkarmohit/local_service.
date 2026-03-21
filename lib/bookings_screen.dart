@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:local_service_app/app_colours.dart';
 import 'booking_model.dart';
+import 'app_colours.dart';
 
 class BookingsScreen extends StatefulWidget {
   const BookingsScreen({super.key});
@@ -20,17 +22,16 @@ class _BookingsScreenState extends State<BookingsScreen> {
     final box = Hive.box<BookingModel>('bookings');
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FB),
+      backgroundColor: AppColors.bg(context),
       appBar: AppBar(
         title: const Text('My Bookings'),
-        backgroundColor: const Color(0xFF1565C0),
+        backgroundColor: AppColors.blue,
         foregroundColor: Colors.white,
       ),
       body: Column(
         children: [
-          // Filter tabs
           Container(
-            color: const Color(0xFF1565C0),
+            color: AppColors.blue,
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -49,24 +50,19 @@ class _BookingsScreenState extends State<BookingsScreen> {
                             : Colors.white.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: Text(
-                        filter,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: isSelected
-                              ? const Color(0xFF1565C0)
-                              : Colors.white,
-                        ),
-                      ),
+                      child: Text(filter,
+                          style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: isSelected
+                                  ? AppColors.blue
+                                  : Colors.white)),
                     ),
                   );
                 }).toList(),
               ),
             ),
           ),
-
-          // Bookings list
           Expanded(
             child: ValueListenableBuilder(
               valueListenable: box.listenable(),
@@ -77,7 +73,6 @@ class _BookingsScreenState extends State<BookingsScreen> {
                     .reversed
                     .toList();
 
-                // Apply filter
                 if (_selectedFilter != 'All') {
                   bookings = bookings
                       .where((e) =>
@@ -141,9 +136,9 @@ class _BookingsScreenState extends State<BookingsScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFEEEEEE)),
+        border: Border.all(color: AppColors.border(context)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -156,41 +151,43 @@ class _BookingsScreenState extends State<BookingsScreen> {
                 Expanded(
                   child: Text(booking.providerName,
                       style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF1A1A2E))),
+                          fontSize: 16, fontWeight: FontWeight.w700)),
                 ),
                 _buildStatusBadge(booking.status),
               ],
             ),
             const SizedBox(height: 12),
-            if (booking.scheduledDate != null && booking.scheduledTime != null) ...[
+            if (booking.scheduledDate != null &&
+                booking.scheduledTime != null) ...[
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE3F2FD),
+                  color: AppColors.blueLight,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   children: [
                     const Icon(Icons.event_rounded,
-                        size: 18, color: Color(0xFF1565C0)),
+                        size: 18, color: AppColors.blue),
                     const SizedBox(width: 10),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Scheduled for',
-                            style: TextStyle(
-                                fontSize: 11, color: Color(0xFF1565C0))),
-                        Text(
-                          '${DateFormat('EEEE, d MMMM yyyy').format(booking.scheduledDate!)}  •  ${booking.scheduledTime}',
-                          style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF1565C0)),
-                        ),
-                      ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Scheduled for',
+                              style: TextStyle(
+                                  fontSize: 11, color: AppColors.blue)),
+                          Text(
+                            '${DateFormat('EEEE, d MMMM yyyy').format(booking.scheduledDate!)}  •  ${booking.scheduledTime}',
+                            style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.blue),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -199,27 +196,27 @@ class _BookingsScreenState extends State<BookingsScreen> {
             ],
             Row(
               children: [
-                const Icon(Icons.category_outlined,
-                    size: 14, color: Color(0xFFAAAAAA)),
+                Icon(Icons.category_outlined,
+                    size: 14, color: Colors.grey.shade400),
                 const SizedBox(width: 6),
                 Text(booking.service,
-                    style: const TextStyle(
-                        fontSize: 13, color: Color(0xFF888888))),
+                    style: TextStyle(
+                        fontSize: 13, color: Colors.grey.shade500)),
               ],
             ),
             const SizedBox(height: 4),
             Row(
               children: [
-                const Icon(Icons.access_time_rounded,
-                    size: 14, color: Color(0xFFAAAAAA)),
+                Icon(Icons.access_time_rounded,
+                    size: 14, color: Colors.grey.shade400),
                 const SizedBox(width: 6),
                 Text('Booked on $bookedOn',
-                    style: const TextStyle(
-                        fontSize: 12, color: Color(0xFF888888))),
+                    style: TextStyle(
+                        fontSize: 12, color: Colors.grey.shade500)),
               ],
             ),
             const SizedBox(height: 12),
-            const Divider(height: 1, color: Color(0xFFF0F0F0)),
+            Divider(height: 1, color: AppColors.border(context)),
             const SizedBox(height: 10),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -227,12 +224,12 @@ class _BookingsScreenState extends State<BookingsScreen> {
                 Row(
                   children: [
                     const Icon(Icons.phone_outlined,
-                        size: 14, color: Color(0xFF1565C0)),
+                        size: 14, color: AppColors.blue),
                     const SizedBox(width: 6),
                     Text(booking.phone,
                         style: const TextStyle(
                             fontSize: 13,
-                            color: Color(0xFF1565C0),
+                            color: AppColors.blue,
                             fontWeight: FontWeight.w500)),
                   ],
                 ),
@@ -242,19 +239,19 @@ class _BookingsScreenState extends State<BookingsScreen> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFCEBEB),
+                      color: AppColors.redLight,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(Icons.delete_outline_rounded,
-                            size: 14, color: Color(0xFFA32D2D)),
+                            size: 14, color: AppColors.red),
                         SizedBox(width: 4),
                         Text('Cancel',
                             style: TextStyle(
                                 fontSize: 12,
-                                color: Color(0xFFA32D2D),
+                                color: AppColors.red,
                                 fontWeight: FontWeight.w600)),
                       ],
                     ),
@@ -275,20 +272,20 @@ class _BookingsScreenState extends State<BookingsScreen> {
     IconData icon;
     switch (status) {
       case 'confirmed':
-        bg = const Color(0xFFEAF3DE);
-        textColor = const Color(0xFF27500A);
+        bg = AppColors.greenLight;
+        textColor = AppColors.green;
         label = 'Confirmed';
         icon = Icons.check_circle_outline_rounded;
         break;
       case 'cancelled':
-        bg = const Color(0xFFFCEBEB);
-        textColor = const Color(0xFFA32D2D);
+        bg = AppColors.redLight;
+        textColor = AppColors.red;
         label = 'Cancelled';
         icon = Icons.cancel_outlined;
         break;
       default:
-        bg = const Color(0xFFFAEEDA);
-        textColor = const Color(0xFF633806);
+        bg = AppColors.orangeLight;
+        textColor = AppColors.orange;
         label = 'Pending';
         icon = Icons.schedule_rounded;
     }
@@ -328,7 +325,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFA32D2D),
+              backgroundColor: AppColors.red,
               minimumSize: const Size(80, 40),
             ),
             onPressed: () async {

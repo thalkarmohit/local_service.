@@ -123,6 +123,7 @@ class _MyAppState extends State<MyApp> {
         elevation: 0,
         type: BottomNavigationBarType.fixed,
       ),
+      dividerColor: const Color(0xFFEEEEEE),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

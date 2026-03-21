@@ -7,6 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'booking_model.dart';
 import 'provider_model.dart';
 import 'review_model.dart';
+import 'notification_service.dart';
 
 class ProviderDetailsScreen extends StatefulWidget {
   final Map<String, String> provider;
@@ -76,7 +77,7 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FB),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: CustomScrollView(
         slivers: [
           _buildAppBar(context),
@@ -167,7 +168,7 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFEEEEEE)),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Column(
         children: [
@@ -216,7 +217,7 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFEEEEEE)),
+          border: Border.all(color: Theme.of(context).dividerColor),
         ),
         child: Row(
           children: [
@@ -312,7 +313,7 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFFEEEEEE)),
+                  border: Border.all(color: Theme.of(context).dividerColor),
                 ),
                 child: const Column(
                   children: [
@@ -341,7 +342,7 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFEEEEEE)),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -428,7 +429,7 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEEEEEE),
+                    color: Theme.of(context).dividerColor,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -478,7 +479,7 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
                     border: Border.all(
                       color: selectedDate != null
                           ? const Color(0xFF1565C0)
-                          : const Color(0xFFEEEEEE),
+                          : Theme.of(context).dividerColor,
                     ),
                   ),
                   child: Row(
@@ -532,7 +533,7 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
                         border: Border.all(
                           color: isSelected
                               ? const Color(0xFF1565C0)
-                              : const Color(0xFFEEEEEE),
+                              : Theme.of(context).dividerColor,
                         ),
                       ),
                       child: Text(slot,

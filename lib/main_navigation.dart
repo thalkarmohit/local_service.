@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:local_service_app/app_colours.dart';
 import 'homescreen.dart';
 import 'bookings_screen.dart';
 import 'profile_screen.dart';
+import 'app_colours.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -22,24 +24,21 @@ class _MainNavigationState extends State<MainNavigation> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
-      ),
+      body: IndexedStack(index: _currentIndex, children: _pages),
       bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: Theme.of(context).bottomNavigationBarTheme.backgroundColor,
           border: Border(
-            top: BorderSide(color: Color(0xFFEEEEEE), width: 1),
+            top: BorderSide(color: AppColors.border(context), width: 1),
           ),
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
           onTap: (index) => setState(() => _currentIndex = index),
-          backgroundColor: Colors.white,
-          selectedItemColor: const Color(0xFF1565C0),
-          unselectedItemColor: const Color(0xFFAAAAAA),
+          backgroundColor: Colors.transparent,
           elevation: 0,
+          selectedItemColor: AppColors.primary(context),
+          unselectedItemColor: Colors.grey,
           items: const [
             BottomNavigationBarItem(
               icon: Icon(Icons.home_outlined),

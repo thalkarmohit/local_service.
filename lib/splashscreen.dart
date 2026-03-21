@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
 import 'provider_model.dart';
 import 'booking_model.dart';
 import 'review_model.dart';
 import 'auth_gate.dart';
+import 'onboarding_screen.dart';
+import 'notification_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -40,14 +43,24 @@ class _SplashScreenState extends State<SplashScreen>
   Future<void> _initApp() async {
     final stopwatch = Stopwatch()..start();
 
-    await Future.wait([
+    // Run all init in parallel
+    final results = await Future.wait([
       Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform),
       _initHive(),
+      SharedPreferences.getInstance(),
     ]);
 
+    // Init notifications
+    await NotificationService().init();
+
+    // Check if onboarding has been seen
+    final prefs = results[2] as SharedPreferences;
+    final onboardingDone = prefs.getBool('onboarding_done') ?? false;
+
+    // Ensure splash shows for at least 2.5 seconds
     final elapsed = stopwatch.elapsedMilliseconds;
-    if (elapsed < 3000) {
-      await Future.delayed(Duration(milliseconds: 3000 - elapsed));
+    if (elapsed < 2500) {
+      await Future.delayed(Duration(milliseconds: 2500 - elapsed));
     }
 
     if (mounted) {
@@ -55,7 +68,8 @@ class _SplashScreenState extends State<SplashScreen>
         context,
         PageRouteBuilder(
           transitionDuration: const Duration(milliseconds: 500),
-          pageBuilder: (_, __, ___) => const AuthGate(),
+          pageBuilder: (_, __, ___) =>
+          onboardingDone ? const AuthGate() : const OnboardingScreen(),
           transitionsBuilder: (_, anim, __, child) =>
               FadeTransition(opacity: anim, child: child),
         ),
