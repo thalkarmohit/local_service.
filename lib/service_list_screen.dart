@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'provider_model.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'firestore_service.dart';
 import 'provider_details_screen.dart';
+import 'app_colours.dart';
 
 enum SortOption { newest, highestRated, mostExperienced }
 
@@ -20,10 +20,8 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final box = Hive.box<ProviderModel>('providers');
-
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FB),
+      backgroundColor: AppColors.bg(context),
       appBar: AppBar(
         title: Text(widget.category),
         backgroundColor: const Color(0xFF1565C0),
@@ -33,22 +31,26 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
           IconButton(
             icon: const Icon(Icons.sort_rounded),
             onPressed: () => _showSortSheet(context),
-            tooltip: 'Sort',
           ),
         ],
       ),
-      body: ValueListenableBuilder(
-        valueListenable: box.listenable(),
-        builder: (context, Box<ProviderModel> providerBox, _) {
-          var providers = providerBox.values
-              .where((p) =>
-          p.service.toLowerCase() == widget.category.toLowerCase())
-              .toList();
+      body: StreamBuilder<List<Map<String, dynamic>>>(
+        stream: FirestoreService().getProvidersByCategory(widget.category),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+
+          var providers = snapshot.data ?? [];
 
           // Apply search
           if (_searchQuery.isNotEmpty) {
             providers = providers
-                .where((p) => p.name
+                .where((p) => (p['name'] as String)
                 .toLowerCase()
                 .contains(_searchQuery.toLowerCase()))
                 .toList();
@@ -57,12 +59,20 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
           // Apply sort
           switch (_sortOption) {
             case SortOption.highestRated:
-              providers.sort((a, b) => b.averageRating.compareTo(a.averageRating));
+              providers.sort((a, b) {
+                final aRating = _avgRating(a);
+                final bRating = _avgRating(b);
+                return bRating.compareTo(aRating);
+              });
               break;
             case SortOption.mostExperienced:
               providers.sort((a, b) {
-                final aYears = int.tryParse(a.exp.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
-                final bYears = int.tryParse(b.exp.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+                final aYears = int.tryParse(
+                    (a['exp'] as String).replaceAll(RegExp(r'[^0-9]'), '')) ??
+                    0;
+                final bYears = int.tryParse(
+                    (b['exp'] as String).replaceAll(RegExp(r'[^0-9]'), '')) ??
+                    0;
                 return bYears.compareTo(aYears);
               });
               break;
@@ -72,7 +82,6 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
 
           return Column(
             children: [
-              // Search + sort indicator bar
               Container(
                 color: const Color(0xFF1565C0),
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -114,26 +123,22 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
                   ],
                 ),
               ),
-
-              // Sort chip indicator
               if (_sortOption != SortOption.newest)
                 Container(
                   width: double.infinity,
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 8),
                   color: const Color(0xFFE3F2FD),
                   child: Row(
                     children: [
                       const Icon(Icons.sort_rounded,
                           size: 14, color: Color(0xFF1565C0)),
                       const SizedBox(width: 6),
-                      Text(
-                        'Sorted by: ${_sortLabel(_sortOption)}',
-                        style: const TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF1565C0),
-                            fontWeight: FontWeight.w500),
-                      ),
+                      Text('Sorted by: ${_sortLabel(_sortOption)}',
+                          style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF1565C0),
+                              fontWeight: FontWeight.w500)),
                       const Spacer(),
                       GestureDetector(
                         onTap: () =>
@@ -147,7 +152,6 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
                     ],
                   ),
                 ),
-
               Expanded(
                 child: providers.isEmpty
                     ? _buildEmptyState()
@@ -163,6 +167,19 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
         },
       ),
     );
+  }
+
+  double _avgRating(Map<String, dynamic> p) {
+    final total = (p['totalRating'] ?? 0) as num;
+    final count = (p['ratingCount'] ?? 0) as num;
+    if (count == 0) return 0;
+    return total / count;
+  }
+
+  String _displayRating(Map<String, dynamic> p) {
+    final avg = _avgRating(p);
+    if (avg == 0) return 'New';
+    return avg.toStringAsFixed(1);
   }
 
   void _showSortSheet(BuildContext context) {
@@ -184,12 +201,10 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
               final isSelected = _sortOption == option;
               return ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: Icon(
-                  _sortIcon(option),
-                  color: isSelected
-                      ? const Color(0xFF1565C0)
-                      : const Color(0xFFAAAAAA),
-                ),
+                leading: Icon(_sortIcon(option),
+                    color: isSelected
+                        ? const Color(0xFF1565C0)
+                        : const Color(0xFFAAAAAA)),
                 title: Text(_sortLabel(option),
                     style: TextStyle(
                         fontWeight: isSelected
@@ -235,7 +250,8 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.person_search_rounded, size: 72, color: Colors.grey.shade300),
+          Icon(Icons.person_search_rounded,
+              size: 72, color: Colors.grey.shade300),
           const SizedBox(height: 16),
           Text('No ${widget.category}s found',
               style: TextStyle(
@@ -250,13 +266,12 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
     );
   }
 
-  Widget _buildProviderCard(BuildContext context, ProviderModel provider) {
-    final initials = provider.name
-        .trim()
-        .split(' ')
-        .take(2)
-        .map((w) => w[0].toUpperCase())
-        .join();
+  Widget _buildProviderCard(
+      BuildContext context, Map<String, dynamic> provider) {
+    final name = provider['name'] as String? ?? 'Unknown';
+    final initials = name.trim().split(' ').take(2)
+        .map((w) => w[0].toUpperCase()).join();
+    final rating = _displayRating(provider);
 
     return GestureDetector(
       onTap: () => Navigator.push(
@@ -264,11 +279,11 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
         MaterialPageRoute(
           builder: (_) => ProviderDetailsScreen(
             provider: {
-              'name': provider.name,
-              'exp': provider.exp,
-              'phone': provider.phone,
-              'id': provider.key.toString(),
-              'rating': provider.displayRating,
+              'id': provider['id'] as String,
+              'name': name,
+              'exp': provider['exp'] as String? ?? 'N/A',
+              'phone': provider['phone'] as String? ?? 'N/A',
+              'rating': rating,
             },
             category: widget.category,
           ),
@@ -277,9 +292,9 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
       child: Container(
         margin: const EdgeInsets.only(bottom: 14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.card(context),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFEEEEEE)),
+          border: Border.all(color: AppColors.border(context)),
         ),
         child: Padding(
           padding: const EdgeInsets.all(14),
@@ -303,14 +318,14 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Expanded(
-                          child: Text(provider.name,
+                          child: Text(name,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
                                   color: Color(0xFF1A1A2E))),
                         ),
-                        _buildRatingBadge(provider),
+                        _buildRatingBadge(rating),
                       ],
                     ),
                     const SizedBox(height: 4),
@@ -326,7 +341,8 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
                             Icon(Icons.work_history_outlined,
                                 size: 14, color: Colors.grey.shade400),
                             const SizedBox(width: 4),
-                            Text('${provider.exp} experience',
+                            Text(
+                                '${provider['exp'] ?? 'N/A'} experience',
                                 style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.grey.shade500)),
@@ -357,8 +373,8 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
     );
   }
 
-  Widget _buildRatingBadge(ProviderModel provider) {
-    if (provider.ratingCount == 0) {
+  Widget _buildRatingBadge(String rating) {
+    if (rating == 'New') {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
@@ -381,7 +397,7 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
         children: [
           const Icon(Icons.star_rounded, size: 13, color: Color(0xFFF9A825)),
           const SizedBox(width: 3),
-          Text(provider.displayRating,
+          Text(rating,
               style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,

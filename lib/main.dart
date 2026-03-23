@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'provider_model.dart';
-import 'booking_model.dart';
 import 'splashscreen.dart';
 
 void main() {
@@ -71,7 +69,9 @@ class _MyAppState extends State<MyApp> {
         elevation: 0,
         centerTitle: false,
         titleTextStyle: TextStyle(
-            color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w600),
         systemOverlayStyle: SystemUiOverlayStyle(
           statusBarColor: Colors.transparent,
           statusBarIconBrightness: Brightness.light,
@@ -82,7 +82,8 @@ class _MyAppState extends State<MyApp> {
           backgroundColor: primaryColor,
           foregroundColor: Colors.white,
           minimumSize: const Size(double.infinity, 52),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14)),
           elevation: 0,
         ),
       ),
@@ -91,20 +92,27 @@ class _MyAppState extends State<MyApp> {
           foregroundColor: primaryColor,
           minimumSize: const Size(double.infinity, 52),
           side: const BorderSide(color: primaryColor, width: 1.5),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14)),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+        contentPadding:
+        const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: Color(0xFFE0E0E0))),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+        enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: Color(0xFFE0E0E0))),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: primaryColor, width: 1.5)),
-        errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+        focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide:
+            const BorderSide(color: primaryColor, width: 1.5)),
+        errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: Colors.red)),
       ),
       cardTheme: CardThemeData(
@@ -116,6 +124,8 @@ class _MyAppState extends State<MyApp> {
         ),
         margin: EdgeInsets.zero,
       ),
+      dividerColor: const Color(0xFFEEEEEE),
+      cardColor: Colors.white,
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: Colors.white,
         selectedItemColor: primaryColor,
@@ -123,10 +133,10 @@ class _MyAppState extends State<MyApp> {
         elevation: 0,
         type: BottomNavigationBarType.fixed,
       ),
-      dividerColor: const Color(0xFFEEEEEE),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12)),
         backgroundColor: const Color(0xFF1A1A2E),
       ),
     );
@@ -148,11 +158,13 @@ class _MyAppState extends State<MyApp> {
       ),
       scaffoldBackgroundColor: bgColor,
       appBarTheme: const AppBarTheme(
-        backgroundColor: Color(0xFF1E1E1E),
+        backgroundColor: surfaceColor,
         foregroundColor: Colors.white,
         elevation: 0,
         titleTextStyle: TextStyle(
-            color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w600),
         systemOverlayStyle: SystemUiOverlayStyle(
           statusBarColor: Colors.transparent,
           statusBarIconBrightness: Brightness.light,
@@ -163,7 +175,8 @@ class _MyAppState extends State<MyApp> {
           backgroundColor: primaryColor,
           foregroundColor: const Color(0xFF121212),
           minimumSize: const Size(double.infinity, 52),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14)),
           elevation: 0,
         ),
       ),
@@ -172,20 +185,27 @@ class _MyAppState extends State<MyApp> {
           foregroundColor: primaryColor,
           minimumSize: const Size(double.infinity, 52),
           side: const BorderSide(color: primaryColor, width: 1.5),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14)),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: surfaceColor,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+        contentPadding:
+        const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: Color(0xFF333333))),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+        enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: Color(0xFF333333))),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: primaryColor, width: 1.5)),
-        errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+        focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide:
+            const BorderSide(color: primaryColor, width: 1.5)),
+        errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: Colors.red)),
       ),
       cardTheme: CardThemeData(
@@ -197,8 +217,10 @@ class _MyAppState extends State<MyApp> {
         ),
         margin: EdgeInsets.zero,
       ),
+      dividerColor: const Color(0xFF333333),
+      cardColor: surfaceColor,
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: Color(0xFF1E1E1E),
+        backgroundColor: surfaceColor,
         selectedItemColor: primaryColor,
         unselectedItemColor: Color(0xFF666666),
         elevation: 0,
@@ -206,7 +228,8 @@ class _MyAppState extends State<MyApp> {
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12)),
         backgroundColor: const Color(0xFF2C2C2C),
       ),
     );

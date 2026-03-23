@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:hive/hive.dart';
-import 'provider_model.dart';
+import 'firestore_service.dart';
 
 class ProviderRegistrationScreen extends StatefulWidget {
   const ProviderRegistrationScreen({super.key});
@@ -22,12 +21,8 @@ class _ProviderRegistrationScreenState
   bool _isLoading = false;
 
   static const List<String> _categories = [
-    'Plumber',
-    'Electrician',
-    'Doctor',
-    'Carpenter',
-    'Cleaner',
-    'AC Repair',
+    'Plumber', 'Electrician', 'Doctor',
+    'Carpenter', 'Cleaner', 'AC Repair',
   ];
 
   @override
@@ -111,8 +106,7 @@ class _ProviderRegistrationScreenState
               Center(
                 child: Text(
                   'Your profile will be visible to customers immediately.',
-                  style: TextStyle(
-                      fontSize: 12, color: Colors.grey.shade500),
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -124,15 +118,12 @@ class _ProviderRegistrationScreenState
   }
 
   Widget _sectionLabel(String label) {
-    return Text(
-      label,
-      style: const TextStyle(
-        fontSize: 13,
-        fontWeight: FontWeight.w600,
-        color: Color(0xFF1565C0),
-        letterSpacing: 0.5,
-      ),
-    );
+    return Text(label,
+        style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF1565C0),
+            letterSpacing: 0.5));
   }
 
   Widget _buildField({
@@ -190,28 +181,28 @@ class _ProviderRegistrationScreenState
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-
     setState(() => _isLoading = true);
 
-    await Future.delayed(const Duration(milliseconds: 300));
+    try {
+      await FirestoreService().addProvider(
+        name: _nameController.text.trim(),
+        service: _selectedCategory!,
+        exp: '${_expController.text.trim()} years',
+        phone: _phoneController.text.trim(),
+      );
 
-    final box = Hive.box<ProviderModel>('providers');
-    await box.add(ProviderModel(
-      name: _nameController.text.trim(),
-      service: _selectedCategory!,
-      exp: '${_expController.text.trim()} years',
-      phone: _phoneController.text.trim(),
-      totalRating: 0,
-      ratingCount: 0,
-    ));
-
-    if (!mounted) return;
-
-    setState(() => _isLoading = false);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Registered successfully! 🎉')),
-    );
-    Navigator.pop(context);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Registered successfully! 🎉')),
+      );
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 }

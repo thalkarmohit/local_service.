@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-import 'package:local_service_app/app_colours.dart';
-import 'booking_model.dart';
+import 'firestore_service.dart';
 import 'app_colours.dart';
 
 class BookingsScreen extends StatefulWidget {
@@ -19,19 +17,18 @@ class _BookingsScreenState extends State<BookingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final box = Hive.box<BookingModel>('bookings');
-
     return Scaffold(
       backgroundColor: AppColors.bg(context),
       appBar: AppBar(
         title: const Text('My Bookings'),
-        backgroundColor: AppColors.blue,
+        backgroundColor: const Color(0xFF1565C0),
         foregroundColor: Colors.white,
       ),
       body: Column(
         children: [
+          // Filter tabs
           Container(
-            color: AppColors.blue,
+            color: const Color(0xFF1565C0),
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -55,7 +52,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
                               color: isSelected
-                                  ? AppColors.blue
+                                  ? const Color(0xFF1565C0)
                                   : Colors.white)),
                     ),
                   );
@@ -63,20 +60,23 @@ class _BookingsScreenState extends State<BookingsScreen> {
               ),
             ),
           ),
-          Expanded(
-            child: ValueListenableBuilder(
-              valueListenable: box.listenable(),
-              builder: (context, Box<BookingModel> box, _) {
-                var bookings = box.keys
-                    .map((k) => MapEntry(k, box.get(k)!))
-                    .toList()
-                    .reversed
-                    .toList();
 
+          // Bookings list
+          Expanded(
+            child: StreamBuilder<List<Map<String, dynamic>>>(
+              stream: FirestoreService().getBookings(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                var bookings = snapshot.data ?? [];
+
+                // Apply filter
                 if (_selectedFilter != 'All') {
                   bookings = bookings
-                      .where((e) =>
-                  e.value.status.toLowerCase() ==
+                      .where((b) =>
+                  (b['status'] as String).toLowerCase() ==
                       _selectedFilter.toLowerCase())
                       .toList();
                 }
@@ -87,7 +87,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
                   padding: const EdgeInsets.all(16),
                   itemCount: bookings.length,
                   itemBuilder: (context, index) =>
-                      _buildBookingCard(context, box, bookings[index]),
+                      _buildBookingCard(context, bookings[index]),
                 );
               },
             ),
@@ -127,11 +127,25 @@ class _BookingsScreenState extends State<BookingsScreen> {
   }
 
   Widget _buildBookingCard(
-      BuildContext context, Box<BookingModel> box, MapEntry entry) {
-    final booking = entry.value as BookingModel;
-    final key = entry.key;
-    final bookedOn =
-    DateFormat('d MMM yyyy, h:mm a').format(booking.bookingDate);
+      BuildContext context, Map<String, dynamic> booking) {
+    final bookingId = booking['id'] as String;
+    final status = booking['status'] as String? ?? 'pending';
+
+    // Handle Firestore Timestamp
+    DateTime? bookedOn;
+    if (booking['bookingDate'] is Timestamp) {
+      bookedOn = (booking['bookingDate'] as Timestamp).toDate();
+    }
+
+    DateTime? scheduledDate;
+    if (booking['scheduledDate'] is Timestamp) {
+      scheduledDate = (booking['scheduledDate'] as Timestamp).toDate();
+    }
+
+    final scheduledTime = booking['scheduledTime'] as String?;
+    final bookedOnStr = bookedOn != null
+        ? DateFormat('d MMM yyyy, h:mm a').format(bookedOn)
+        : 'Unknown';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -149,16 +163,17 @@ class _BookingsScreenState extends State<BookingsScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
-                  child: Text(booking.providerName,
+                  child: Text(booking['providerName'] ?? 'Unknown',
                       style: const TextStyle(
                           fontSize: 16, fontWeight: FontWeight.w700)),
                 ),
-                _buildStatusBadge(booking.status),
+                _buildStatusBadge(status),
               ],
             ),
             const SizedBox(height: 12),
-            if (booking.scheduledDate != null &&
-                booking.scheduledTime != null) ...[
+
+            // Scheduled date
+            if (scheduledDate != null && scheduledTime != null) ...[
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(
@@ -180,7 +195,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
                               style: TextStyle(
                                   fontSize: 11, color: AppColors.blue)),
                           Text(
-                            '${DateFormat('EEEE, d MMMM yyyy').format(booking.scheduledDate!)}  •  ${booking.scheduledTime}',
+                            '${DateFormat('EEEE, d MMMM yyyy').format(scheduledDate)}  •  $scheduledTime',
                             style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
@@ -194,12 +209,13 @@ class _BookingsScreenState extends State<BookingsScreen> {
               ),
               const SizedBox(height: 10),
             ],
+
             Row(
               children: [
                 Icon(Icons.category_outlined,
                     size: 14, color: Colors.grey.shade400),
                 const SizedBox(width: 6),
-                Text(booking.service,
+                Text(booking['service'] ?? '',
                     style: TextStyle(
                         fontSize: 13, color: Colors.grey.shade500)),
               ],
@@ -210,7 +226,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
                 Icon(Icons.access_time_rounded,
                     size: 14, color: Colors.grey.shade400),
                 const SizedBox(width: 6),
-                Text('Booked on $bookedOn',
+                Text('Booked on $bookedOnStr',
                     style: TextStyle(
                         fontSize: 12, color: Colors.grey.shade500)),
               ],
@@ -218,6 +234,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
             const SizedBox(height: 12),
             Divider(height: 1, color: AppColors.border(context)),
             const SizedBox(height: 10),
+
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -226,7 +243,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
                     const Icon(Icons.phone_outlined,
                         size: 14, color: AppColors.blue),
                     const SizedBox(width: 6),
-                    Text(booking.phone,
+                    Text(booking['phone'] ?? '',
                         style: const TextStyle(
                             fontSize: 13,
                             color: AppColors.blue,
@@ -234,7 +251,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
                   ],
                 ),
                 GestureDetector(
-                  onTap: () => _confirmDelete(context, box, key),
+                  onTap: () => _confirmDelete(context, bookingId),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 6),
@@ -308,8 +325,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
     );
   }
 
-  void _confirmDelete(
-      BuildContext context, Box<BookingModel> box, dynamic key) {
+  void _confirmDelete(BuildContext context, String bookingId) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -329,7 +345,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
               minimumSize: const Size(80, 40),
             ),
             onPressed: () async {
-              await box.delete(key);
+              await FirestoreService().deleteBooking(bookingId);
               if (ctx.mounted) Navigator.pop(ctx);
             },
             child: const Text('Cancel Booking'),

@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'firestore_service.dart';
 import 'service_list_screen.dart';
 import 'provider_details_screen.dart';
-import 'provider_model.dart';
 import 'app_colours.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -37,73 +35,49 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final box = Hive.box<ProviderModel>('providers');
-
-    return ValueListenableBuilder(
-      valueListenable: box.listenable(),
-      builder: (context, Box<ProviderModel> providerBox, _) {
-        final allProviders = providerBox.values.map((p) => {
-          'name': p.name,
-          'service': p.service,
-          'exp': p.exp,
-          'phone': p.phone,
-          'id': p.key.toString(),
-          'rating': p.displayRating,
-        }).toList();
-
-        final filtered = _searchQuery.isEmpty
-            ? <Map<String, String>>[]
-            : allProviders
-            .where((p) =>
-        (p['name'] ?? '').toLowerCase().contains(_searchQuery.toLowerCase()) ||
-            (p['service'] ?? '').toLowerCase().contains(_searchQuery.toLowerCase()))
-            .toList();
-
-        return Scaffold(
-          backgroundColor: AppColors.bg(context),
-          body: CustomScrollView(
-            slivers: [
-              _buildSliverAppBar(),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                  child: _buildSearchBar(),
+    return Scaffold(
+      backgroundColor: AppColors.bg(context),
+      body: CustomScrollView(
+        slivers: [
+          _buildSliverAppBar(),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: _buildSearchBar(),
+            ),
+          ),
+          if (_searchQuery.isNotEmpty)
+            _buildSearchResults()
+          else ...[
+            SliverToBoxAdapter(child: _buildBanner()),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
+                child: Text('Our Services',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    )),
+              ),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              sliver: SliverGrid(
+                delegate: SliverChildBuilderDelegate(
+                      (context, index) => _buildCategoryCard(context, index),
+                  childCount: _categories.length,
+                ),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 14,
+                  mainAxisSpacing: 14,
+                  childAspectRatio: 1.1,
                 ),
               ),
-              if (_searchQuery.isNotEmpty)
-                _buildSearchResults(filtered)
-              else ...[
-                SliverToBoxAdapter(child: _buildBanner()),
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
-                    child: Text('Our Services',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        )),
-                  ),
-                ),
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  sliver: SliverGrid(
-                    delegate: SliverChildBuilderDelegate(
-                          (context, index) => _buildCategoryCard(context, index),
-                      childCount: _categories.length,
-                    ),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 14,
-                      mainAxisSpacing: 14,
-                      childAspectRatio: 1.1,
-                    ),
-                  ),
-                ),
-                const SliverToBoxAdapter(child: SizedBox(height: 24)),
-              ],
-            ],
-          ),
-        );
-      },
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 24)),
+          ],
+        ],
+      ),
     );
   }
 
@@ -160,11 +134,14 @@ class _HomeScreenState extends State<HomeScreen> {
       child: TextField(
         decoration: InputDecoration(
           hintText: 'Search providers or services...',
-          hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-          prefixIcon: Icon(Icons.search_rounded, color: Colors.grey.shade400),
+          hintStyle:
+          TextStyle(color: Colors.grey.shade400, fontSize: 14),
+          prefixIcon:
+          Icon(Icons.search_rounded, color: Colors.grey.shade400),
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
-            icon: Icon(Icons.close_rounded, color: Colors.grey.shade400),
+            icon: Icon(Icons.close_rounded,
+                color: Colors.grey.shade400),
             onPressed: () => setState(() => _searchQuery = ''),
           )
               : null,
@@ -197,15 +174,20 @@ class _HomeScreenState extends State<HomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Need a service?',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.w700,
                       )),
                   const SizedBox(height: 6),
-                  Text('Book trusted professionals near you in minutes.',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.white70,
-                      )),
+                  Text(
+                      'Book trusted professionals near you in minutes.',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: Colors.white70)),
                 ],
               ),
             ),
@@ -257,78 +239,110 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildSearchResults(List<Map<String, String>> results) {
-    if (results.isEmpty) {
-      return SliverFillRemaining(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.search_off_rounded,
-                  size: 64, color: Colors.grey.shade300),
-              const SizedBox(height: 16),
-              Text('No providers found',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(color: Colors.grey.shade400)),
-              const SizedBox(height: 6),
-              Text('Try a different name or service',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: Colors.grey.shade400)),
-            ],
-          ),
-        ),
-      );
-    }
+  Widget _buildSearchResults() {
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: FirestoreService().getProviders(),
+      builder: (context, snapshot) {
+        final all = snapshot.data ?? [];
+        final filtered = all
+            .where((p) =>
+        (p['name'] as String? ?? '')
+            .toLowerCase()
+            .contains(_searchQuery.toLowerCase()) ||
+            (p['service'] as String? ?? '')
+                .toLowerCase()
+                .contains(_searchQuery.toLowerCase()))
+            .toList();
 
-    return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      sliver: SliverList(
-        delegate: SliverChildBuilderDelegate(
-              (context, index) {
-            final p = results[index];
-            return Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              decoration: BoxDecoration(
-                color: AppColors.card(context),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.border(context)),
+        if (filtered.isEmpty) {
+          return SliverFillRemaining(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.search_off_rounded,
+                      size: 64, color: Colors.grey.shade300),
+                  const SizedBox(height: 16),
+                  Text('No providers found',
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(color: Colors.grey.shade400)),
+                  const SizedBox(height: 6),
+                  Text('Try a different name or service',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: Colors.grey.shade400)),
+                ],
               ),
-              child: ListTile(
-                contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                leading: CircleAvatar(
-                  backgroundColor: AppColors.blueLight,
-                  child: Text(
-                    (p['name'] ?? 'U')[0].toUpperCase(),
-                    style: const TextStyle(
-                        color: AppColors.blue, fontWeight: FontWeight.w700),
+            ),
+          );
+        }
+
+        return SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          sliver: SliverList(
+            delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                final p = filtered[index];
+                final name = p['name'] as String? ?? '';
+                final service = p['service'] as String? ?? '';
+                final total = (p['totalRating'] ?? 0) as num;
+                final count = (p['ratingCount'] ?? 0) as num;
+                final rating = count > 0
+                    ? (total / count).toStringAsFixed(1)
+                    : 'New';
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.card(context),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppColors.border(context)),
                   ),
-                ),
-                title: Text(p['name'] ?? '',
-                    style: const TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: Text('${p["service"]} • ⭐ ${p["rating"] ?? "New"}',
-                    style: const TextStyle(fontSize: 13)),
-                trailing: Icon(Icons.arrow_forward_ios_rounded,
-                    size: 14, color: Colors.grey.shade400),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ProviderDetailsScreen(
-                      provider: p,
-                      category: p['service'] ?? '',
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 6),
+                    leading: CircleAvatar(
+                      backgroundColor: AppColors.blueLight,
+                      child: Text(
+                        name.isNotEmpty ? name[0].toUpperCase() : 'U',
+                        style: const TextStyle(
+                            color: AppColors.blue,
+                            fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    title: Text(name,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600)),
+                    subtitle: Text('$service • ⭐ $rating',
+                        style: const TextStyle(fontSize: 13)),
+                    trailing: Icon(Icons.arrow_forward_ios_rounded,
+                        size: 14, color: Colors.grey.shade400),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ProviderDetailsScreen(
+                          provider: {
+                            'id': p['id'] as String,
+                            'name': name,
+                            'exp': p['exp'] as String? ?? 'N/A',
+                            'phone': p['phone'] as String? ?? 'N/A',
+                            'rating': rating,
+                          },
+                          category: service,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-            );
-          },
-          childCount: results.length,
-        ),
-      ),
+                );
+              },
+              childCount: filtered.length,
+            ),
+          ),
+        );
+      },
     );
   }
 }

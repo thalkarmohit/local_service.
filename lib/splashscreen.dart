@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
-import 'provider_model.dart';
-import 'booking_model.dart';
-import 'review_model.dart';
 import 'auth_gate.dart';
 import 'onboarding_screen.dart';
 import 'notification_service.dart';
@@ -43,10 +39,10 @@ class _SplashScreenState extends State<SplashScreen>
   Future<void> _initApp() async {
     final stopwatch = Stopwatch()..start();
 
-    // Run all init in parallel
+    // Run Firebase init and SharedPreferences in parallel
     final results = await Future.wait([
-      Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform),
-      _initHive(),
+      Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform),
       SharedPreferences.getInstance(),
     ]);
 
@@ -54,7 +50,7 @@ class _SplashScreenState extends State<SplashScreen>
     await NotificationService().init();
 
     // Check if onboarding has been seen
-    final prefs = results[2] as SharedPreferences;
+    final prefs = results[1] as SharedPreferences;
     final onboardingDone = prefs.getBool('onboarding_done') ?? false;
 
     // Ensure splash shows for at least 2.5 seconds
@@ -75,17 +71,6 @@ class _SplashScreenState extends State<SplashScreen>
         ),
       );
     }
-  }
-
-  Future<void> _initHive() async {
-    await Hive.initFlutter();
-    if (!Hive.isAdapterRegistered(0)) Hive.registerAdapter(ProviderModelAdapter());
-    if (!Hive.isAdapterRegistered(1)) Hive.registerAdapter(BookingModelAdapter());
-    if (!Hive.isAdapterRegistered(2)) Hive.registerAdapter(ReviewModelAdapter());
-    if (!Hive.isBoxOpen('providers')) await Hive.openBox<ProviderModel>('providers');
-    if (!Hive.isBoxOpen('bookings')) await Hive.openBox<BookingModel>('bookings');
-    if (!Hive.isBoxOpen('reviews')) await Hive.openBox<ReviewModel>('reviews');
-    if (!Hive.isBoxOpen('favourites')) await Hive.openBox<String>('favourites');
   }
 
   @override
@@ -128,14 +113,16 @@ class _SplashScreenState extends State<SplashScreen>
                         letterSpacing: 0.5)),
                 const SizedBox(height: 8),
                 const Text('Professional help at your doorstep',
-                    style: TextStyle(fontSize: 14, color: Colors.white70)),
+                    style:
+                    TextStyle(fontSize: 14, color: Colors.white70)),
                 const SizedBox(height: 60),
                 const SizedBox(
                   width: 28,
                   height: 28,
                   child: CircularProgressIndicator(
                     strokeWidth: 2.5,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
+                    valueColor:
+                    AlwaysStoppedAnimation<Color>(Colors.white70),
                   ),
                 ),
               ],

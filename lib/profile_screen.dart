@@ -1,10 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'auth_service.dart';
 import 'provider_registration_screen.dart';
-import 'provider_model.dart';
+import 'firestore_service.dart';
 import 'provider_details_screen.dart';
 import 'main.dart';
 import 'register_screen.dart';
@@ -185,78 +183,89 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildFavouritesSection(BuildContext context) {
-    return ValueListenableBuilder(
-      valueListenable: Hive.box<String>('favourites').listenable(),
-      builder: (context, Box<String> favBox, _) {
-        final providerBox = Hive.box<ProviderModel>('providers');
-        final favIds = favBox.values.toList();
-
+    return StreamBuilder<List<String>>(
+      stream: FirestoreService().getFavourites(),
+      builder: (context, snapshot) {
+        final favIds = snapshot.data ?? [];
         if (favIds.isEmpty) return const SizedBox.shrink();
 
-        final favProviders = providerBox.values
-            .where((p) => favIds.contains(p.key.toString()))
-            .toList();
+        return StreamBuilder<List<Map<String, dynamic>>>(
+          stream: FirestoreService().getProviders(),
+          builder: (context, provSnap) {
+            final all = provSnap.data ?? [];
+            final favProviders = all
+                .where((p) => favIds.contains(p['id'] as String))
+                .toList();
+            if (favProviders.isEmpty) return const SizedBox.shrink();
 
-        if (favProviders.isEmpty) return const SizedBox.shrink();
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Favourites',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 12),
-            Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardTheme.color,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFEEEEEE)),
-              ),
-              child: Column(
-                children: favProviders.asMap().entries.map((entry) {
-                  final i = entry.key;
-                  final p = entry.value;
-                  final initials = p.name.trim().split(' ').take(2)
-                      .map((w) => w[0].toUpperCase()).join();
-                  return Column(
-                    children: [
-                      ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: const Color(0xFFE3F2FD),
-                          child: Text(initials,
-                              style: const TextStyle(
-                                  color: Color(0xFF1565C0),
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 13)),
-                        ),
-                        title: Text(p.name,
-                            style: const TextStyle(fontWeight: FontWeight.w600)),
-                        subtitle: Text(p.service),
-                        trailing: const Icon(Icons.arrow_forward_ios_rounded,
-                            size: 14, color: Color(0xFFAAAAAA)),
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => ProviderDetailsScreen(
-                              provider: {
-                                'name': p.name,
-                                'exp': p.exp,
-                                'phone': p.phone,
-                                'id': p.key.toString(),
-                                'rating': p.displayRating,
-                              },
-                              category: p.service,
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Favourites',
+                    style: TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 12),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFEEEEEE)),
+                  ),
+                  child: Column(
+                    children: favProviders.asMap().entries.map((entry) {
+                      final i = entry.key;
+                      final p = entry.value;
+                      final name = p['name'] as String? ?? '';
+                      final initials = name.trim().split(' ').take(2)
+                          .map((w) => w[0].toUpperCase()).join();
+                      return Column(
+                        children: [
+                          ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: const Color(0xFFE3F2FD),
+                              child: Text(initials,
+                                  style: const TextStyle(
+                                      color: Color(0xFF1565C0),
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 13)),
+                            ),
+                            title: Text(name,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600)),
+                            subtitle: Text(p['service'] as String? ?? ''),
+                            trailing: const Icon(
+                                Icons.arrow_forward_ios_rounded,
+                                size: 14,
+                                color: Color(0xFFAAAAAA)),
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => ProviderDetailsScreen(
+                                  provider: {
+                                    'id': p['id'] as String,
+                                    'name': name,
+                                    'exp': p['exp'] as String? ?? 'N/A',
+                                    'phone': p['phone'] as String? ?? 'N/A',
+                                    'rating': 'New',
+                                  },
+                                  category: p['service'] as String? ?? '',
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ),
-                      if (i < favProviders.length - 1)
-                        const Divider(height: 1, indent: 70, color: Color(0xFFF0F0F0)),
-                    ],
-                  );
-                }).toList(),
-              ),
-            ),
-          ],
+                          if (i < favProviders.length - 1)
+                            const Divider(
+                                height: 1,
+                                indent: 70,
+                                color: Color(0xFFF0F0F0)),
+                        ],
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
+            );
+          },
         );
       },
     );

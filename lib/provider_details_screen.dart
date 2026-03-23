@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:hive/hive.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'booking_model.dart';
-import 'provider_model.dart';
-import 'review_model.dart';
+import 'firestore_service.dart';
 import 'notification_service.dart';
 
 class ProviderDetailsScreen extends StatefulWidget {
@@ -45,39 +41,10 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
     _currentRating = widget.provider['rating'] ?? 'New';
   }
 
-  bool _isFavourite() {
-    final box = Hive.box<String>('favourites');
-    return box.values.contains(_providerId);
-  }
-
-  Future<void> _toggleFavourite() async {
-    final box = Hive.box<String>('favourites');
-    final existing = box.keys.firstWhere(
-          (k) => box.get(k) == _providerId,
-      orElse: () => null,
-    );
-    if (existing != null) {
-      await box.delete(existing);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Removed from favourites')),
-        );
-      }
-    } else {
-      await box.add(_providerId);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Added to favourites ❤️')),
-        );
-      }
-    }
-    setState(() {});
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: const Color(0xFFF4F6FB),
       body: CustomScrollView(
         slivers: [
           _buildAppBar(context),
@@ -115,16 +82,31 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
       backgroundColor: const Color(0xFF1565C0),
       foregroundColor: Colors.white,
       actions: [
-        ValueListenableBuilder(
-          valueListenable: Hive.box<String>('favourites').listenable(),
-          builder: (context, box, _) {
-            final isFav = _isFavourite();
+        StreamBuilder<List<String>>(
+          stream: FirestoreService().getFavourites(),
+          builder: (context, snapshot) {
+            final favs = snapshot.data ?? [];
+            final isFav = favs.contains(_providerId);
             return IconButton(
               icon: Icon(
                 isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
                 color: isFav ? Colors.red.shade300 : Colors.white,
               ),
-              onPressed: _toggleFavourite,
+              onPressed: () async {
+                await FirestoreService().toggleFavourite(
+                  _providerId,
+                  widget.provider['name'] ?? '',
+                );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(isFav
+                          ? 'Removed from favourites'
+                          : 'Added to favourites ❤️'),
+                    ),
+                  );
+                }
+              },
             );
           },
         ),
@@ -168,13 +150,15 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Theme.of(context).dividerColor),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
       ),
       child: Column(
         children: [
-          _infoRow(Icons.work_outline_rounded, 'Experience', widget.provider['exp'] ?? 'N/A'),
+          _infoRow(Icons.work_outline_rounded, 'Experience',
+              widget.provider['exp'] ?? 'N/A'),
           const Divider(height: 1, color: Color(0xFFF0F0F0)),
-          _infoRow(Icons.phone_outlined, 'Phone', widget.provider['phone'] ?? 'N/A'),
+          _infoRow(Icons.phone_outlined, 'Phone',
+              widget.provider['phone'] ?? 'N/A'),
           const Divider(height: 1, color: Color(0xFFF0F0F0)),
           _infoRow(Icons.star_outline_rounded, 'Rating',
               _currentRating == 'New' ? 'No ratings yet' : '⭐ $_currentRating'),
@@ -190,11 +174,14 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
         children: [
           Icon(icon, size: 20, color: const Color(0xFF1565C0)),
           const SizedBox(width: 14),
-          Text(label, style: const TextStyle(fontSize: 14, color: Color(0xFF888888))),
+          Text(label,
+              style: const TextStyle(fontSize: 14, color: Color(0xFF888888))),
           const Spacer(),
           Text(value,
               style: const TextStyle(
-                  fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF1A1A2E))),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1A1A2E))),
         ],
       ),
     );
@@ -217,7 +204,7 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Theme.of(context).dividerColor),
+          border: Border.all(color: const Color(0xFFEEEEEE)),
         ),
         child: Row(
           children: [
@@ -228,11 +215,14 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(label,
-                      style: const TextStyle(fontSize: 11, color: Color(0xFFAAAAAA))),
+                      style: const TextStyle(
+                          fontSize: 11, color: Color(0xFFAAAAAA))),
                   Text(value,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                          fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1A1A2E))),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1A1A2E))),
                 ],
               ),
             ),
@@ -252,9 +242,7 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
           return;
         }
         final uri = Uri(scheme: 'tel', path: phone);
-        if (await canLaunchUrl(uri)) {
-          await launchUrl(uri);
-        }
+        if (await canLaunchUrl(uri)) await launchUrl(uri);
       },
       icon: const Icon(Icons.call_rounded),
       label: const Text('Call Provider'),
@@ -273,7 +261,8 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
     return TextButton.icon(
       onPressed: () => _showRatingDialog(context),
       icon: const Icon(Icons.star_rounded, color: Color(0xFFF9A825)),
-      label: const Text('Rate & Review', style: TextStyle(color: Color(0xFF1565C0))),
+      label: const Text('Rate & Review',
+          style: TextStyle(color: Color(0xFF1565C0))),
       style: TextButton.styleFrom(
         minimumSize: const Size(double.infinity, 52),
         backgroundColor: const Color(0xFFFFF8E1),
@@ -284,27 +273,18 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
 
   // ─── Reviews Section ───────────────────────────────────────────────────────
   Widget _buildReviewsSection() {
-    return ValueListenableBuilder(
-      valueListenable: Hive.box<ReviewModel>('reviews').listenable(),
-      builder: (context, Box<ReviewModel> box, _) {
-        final reviews = box.values
-            .where((r) => r.providerId == _providerId)
-            .toList()
-          ..sort((a, b) => b.date.compareTo(a.date));
-
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: FirestoreService().getReviews(_providerId),
+      builder: (context, snapshot) {
+        final reviews = snapshot.data ?? [];
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Reviews (${reviews.length})',
-                    style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF1A1A2E))),
-              ],
-            ),
+            Text('Reviews (${reviews.length})',
+                style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1A1A2E))),
             const SizedBox(height: 12),
             if (reviews.isEmpty)
               Container(
@@ -313,7 +293,7 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Theme.of(context).dividerColor),
+                  border: Border.all(color: const Color(0xFFEEEEEE)),
                 ),
                 child: const Column(
                   children: [
@@ -321,9 +301,11 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
                         size: 36, color: Color(0xFFCCCCCC)),
                     SizedBox(height: 8),
                     Text('No reviews yet',
-                        style: TextStyle(color: Color(0xFFAAAAAA), fontSize: 14)),
+                        style: TextStyle(
+                            color: Color(0xFFAAAAAA), fontSize: 14)),
                     Text('Be the first to review!',
-                        style: TextStyle(color: Color(0xFFCCCCCC), fontSize: 12)),
+                        style: TextStyle(
+                            color: Color(0xFFCCCCCC), fontSize: 12)),
                   ],
                 ),
               )
@@ -335,14 +317,20 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
     );
   }
 
-  Widget _buildReviewCard(ReviewModel review) {
+  Widget _buildReviewCard(Map<String, dynamic> review) {
+    DateTime? date;
+    if (review['date'] is Timestamp) {
+      date = (review['date'] as Timestamp).toDate();
+    }
+    final rating = (review['rating'] as num?)?.toInt() ?? 0;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Theme.of(context).dividerColor),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -356,9 +344,8 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
                     radius: 16,
                     backgroundColor: const Color(0xFFE3F2FD),
                     child: Text(
-                      review.reviewerName.isNotEmpty
-                          ? review.reviewerName[0].toUpperCase()
-                          : 'U',
+                      (review['reviewerName'] as String? ?? 'U')[0]
+                          .toUpperCase(),
                       style: const TextStyle(
                           color: Color(0xFF1565C0),
                           fontWeight: FontWeight.w700,
@@ -366,7 +353,7 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text(review.reviewerName,
+                  Text(review['reviewerName'] ?? 'Anonymous',
                       style: const TextStyle(
                           fontWeight: FontWeight.w600, fontSize: 13)),
                 ],
@@ -375,7 +362,9 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
                 children: List.generate(
                   5,
                       (i) => Icon(
-                    i < review.rating ? Icons.star_rounded : Icons.star_outline_rounded,
+                    i < rating
+                        ? Icons.star_rounded
+                        : Icons.star_outline_rounded,
                     size: 14,
                     color: const Color(0xFFF9A825),
                   ),
@@ -384,11 +373,14 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
             ],
           ),
           const SizedBox(height: 8),
-          Text(review.comment,
-              style: const TextStyle(fontSize: 13, color: Color(0xFF555555), height: 1.5)),
+          Text(review['comment'] ?? '',
+              style: const TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFF555555),
+                  height: 1.5)),
           const SizedBox(height: 6),
           Text(
-            DateFormat('d MMM yyyy').format(review.date),
+            date != null ? DateFormat('d MMM yyyy').format(date) : '',
             style: const TextStyle(fontSize: 11, color: Color(0xFFAAAAAA)),
           ),
         ],
@@ -429,7 +421,7 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).dividerColor,
+                    color: const Color(0xFFEEEEEE),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -441,8 +433,10 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
                       fontWeight: FontWeight.w700,
                       color: Color(0xFF1A1A2E))),
               const SizedBox(height: 4),
-              Text('Book ${widget.provider["name"]} for ${widget.category}',
-                  style: const TextStyle(fontSize: 13, color: Color(0xFF888888))),
+              Text(
+                  'Book ${widget.provider["name"]} for ${widget.category}',
+                  style: const TextStyle(
+                      fontSize: 13, color: Color(0xFF888888))),
               const SizedBox(height: 24),
               const Text('Select Date',
                   style: TextStyle(
@@ -466,11 +460,14 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
                       child: child!,
                     ),
                   );
-                  if (picked != null) setSheetState(() => selectedDate = picked);
+                  if (picked != null) {
+                    setSheetState(() => selectedDate = picked);
+                  }
                 },
                 child: Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 14),
                   decoration: BoxDecoration(
                     color: selectedDate != null
                         ? const Color(0xFFE3F2FD)
@@ -479,7 +476,7 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
                     border: Border.all(
                       color: selectedDate != null
                           ? const Color(0xFF1565C0)
-                          : Theme.of(context).dividerColor,
+                          : const Color(0xFFEEEEEE),
                     ),
                   ),
                   child: Row(
@@ -492,7 +489,8 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
                       const SizedBox(width: 12),
                       Text(
                         selectedDate != null
-                            ? DateFormat('EEEE, d MMMM yyyy').format(selectedDate!)
+                            ? DateFormat('EEEE, d MMMM yyyy')
+                            .format(selectedDate!)
                             : 'Tap to choose a date',
                         style: TextStyle(
                           fontSize: 14,
@@ -521,7 +519,8 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
                 children: _timeSlots.map((slot) {
                   final isSelected = selectedTime == slot;
                   return GestureDetector(
-                    onTap: () => setSheetState(() => selectedTime = slot),
+                    onTap: () =>
+                        setSheetState(() => selectedTime = slot),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 8),
@@ -533,7 +532,7 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
                         border: Border.all(
                           color: isSelected
                               ? const Color(0xFF1565C0)
-                              : Theme.of(context).dividerColor,
+                              : const Color(0xFFEEEEEE),
                         ),
                       ),
                       child: Text(slot,
@@ -552,19 +551,31 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
-                  onPressed: (selectedDate == null || selectedTime == null)
+                  onPressed:
+                  (selectedDate == null || selectedTime == null)
                       ? null
                       : () async {
-                    final box = Hive.box<BookingModel>('bookings');
-                    await box.add(BookingModel(
-                      providerName: widget.provider['name'] ?? 'Unknown',
+                    await FirestoreService().addBooking(
+                      providerName:
+                      widget.provider['name'] ?? 'Unknown',
                       service: widget.category,
-                      phone: widget.provider['phone'] ?? 'N/A',
-                      bookingDate: DateTime.now(),
-                      status: 'pending',
-                      scheduledDate: selectedDate,
-                      scheduledTime: selectedTime,
-                    ));
+                      phone:
+                      widget.provider['phone'] ?? 'N/A',
+                      scheduledDate: selectedDate!,
+                      scheduledTime: selectedTime!,
+                    );
+
+                    // Fire notification
+                    await NotificationService()
+                        .showBookingConfirmation(
+                      providerName:
+                      widget.provider['name'] ?? 'Provider',
+                      service: widget.category,
+                      date: DateFormat('d MMM yyyy')
+                          .format(selectedDate!),
+                      time: selectedTime!,
+                    );
+
                     if (ctx.mounted) {
                       Navigator.pop(ctx);
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -609,7 +620,8 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20)),
           title: const Text('Rate & Review',
               style: TextStyle(fontWeight: FontWeight.w700)),
           content: SingleChildScrollView(
@@ -619,7 +631,8 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
                 Text(
                   'How was your experience with ${widget.provider["name"]}?',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: Color(0xFF888888), fontSize: 13),
+                  style: const TextStyle(
+                      color: Color(0xFF888888), fontSize: 13),
                 ),
                 const SizedBox(height: 16),
                 Row(
@@ -627,9 +640,11 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
                   children: List.generate(5, (i) {
                     final star = i + 1;
                     return GestureDetector(
-                      onTap: () => setDialogState(() => selectedRating = star),
+                      onTap: () =>
+                          setDialogState(() => selectedRating = star),
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        padding:
+                        const EdgeInsets.symmetric(horizontal: 4),
                         child: Icon(
                           star <= selectedRating
                               ? Icons.star_rounded
@@ -644,27 +659,32 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
                 const SizedBox(height: 8),
                 Text(_ratingLabel(selectedRating),
                     style: const TextStyle(
-                        color: Color(0xFF1565C0), fontWeight: FontWeight.w600)),
+                        color: Color(0xFF1565C0),
+                        fontWeight: FontWeight.w600)),
                 const SizedBox(height: 16),
                 TextField(
                   controller: commentController,
                   maxLines: 3,
                   decoration: InputDecoration(
                     hintText: 'Write your review here...',
-                    hintStyle: const TextStyle(color: Color(0xFFAAAAAA)),
+                    hintStyle:
+                    const TextStyle(color: Color(0xFFAAAAAA)),
                     filled: true,
                     fillColor: const Color(0xFFF4F6FB),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFEEEEEE)),
+                      borderSide:
+                      const BorderSide(color: Color(0xFFEEEEEE)),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFEEEEEE)),
+                      borderSide:
+                      const BorderSide(color: Color(0xFFEEEEEE)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF1565C0)),
+                      borderSide: const BorderSide(
+                          color: Color(0xFF1565C0)),
                     ),
                   ),
                 ),
@@ -678,43 +698,31 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
             ),
             ElevatedButton(
               onPressed: () async {
-                // Save rating
-                final idStr = widget.provider['id'];
-                if (idStr != null) {
-                  final providerBox = Hive.box<ProviderModel>('providers');
-                  final key = int.tryParse(idStr);
-                  if (key != null) {
-                    final p = providerBox.get(key);
-                    if (p != null) {
-                      p.totalRating += selectedRating;
-                      p.ratingCount += 1;
-                      await p.save();
-                      setState(() => _currentRating = p.displayRating);
-                    }
-                  }
-                }
+                // Update rating in Firestore
+                await FirestoreService().updateProviderRating(
+                  providerId: _providerId,
+                  rating: selectedRating,
+                );
 
-                // Save review
+                // Save review in Firestore
                 if (commentController.text.trim().isNotEmpty) {
-                  final reviewBox = Hive.box<ReviewModel>('reviews');
-                  final user = FirebaseAuth.instance.currentUser;
-                  await reviewBox.add(ReviewModel(
+                  await FirestoreService().addReview(
                     providerId: _providerId,
-                    reviewerName: user?.displayName ?? user?.email ?? 'Anonymous',
                     comment: commentController.text.trim(),
                     rating: selectedRating,
-                    date: DateTime.now(),
-                  ));
+                  );
                 }
 
                 if (ctx.mounted) {
                   Navigator.pop(ctx);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Thanks for your review! ⭐')),
+                    const SnackBar(
+                        content: Text('Thanks for your review! ⭐')),
                   );
                 }
               },
-              style: ElevatedButton.styleFrom(minimumSize: const Size(100, 44)),
+              style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(100, 44)),
               child: const Text('Submit'),
             ),
           ],
