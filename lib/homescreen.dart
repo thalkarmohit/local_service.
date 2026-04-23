@@ -12,6 +12,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+
   String _searchQuery = '';
 
   static const List<Map<String, dynamic>> _categories = [
@@ -24,13 +25,21 @@ class _HomeScreenState extends State<HomeScreen> {
   ];
 
   static const List<Color> _categoryColors = [
-    Color(0xFFE3F2FD), Color(0xFFFFF8E1), Color(0xFFE8F5E9),
-    Color(0xFFFBE9E7), Color(0xFFE0F7FA), Color(0xFFF3E5F5),
+    Color(0xFFE3F2FD),
+    Color(0xFFFFF8E1),
+    Color(0xFFE8F5E9),
+    Color(0xFFFBE9E7),
+    Color(0xFFE0F7FA),
+    Color(0xFFF3E5F5),
   ];
 
   static const List<Color> _categoryIconColors = [
-    Color(0xFF1565C0), Color(0xFFF9A825), Color(0xFF2E7D32),
-    Color(0xFFBF360C), Color(0xFF00838F), Color(0xFF6A1B9A),
+    Color(0xFF1565C0),
+    Color(0xFFF9A825),
+    Color(0xFF2E7D32),
+    Color(0xFFBF360C),
+    Color(0xFF00838F),
+    Color(0xFF6A1B9A),
   ];
 
   @override
@@ -84,7 +93,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildSliverAppBar() {
     return SliverAppBar(
       expandedHeight: 130,
-      floating: false,
       pinned: true,
       backgroundColor: AppColors.blue,
       flexibleSpace: FlexibleSpaceBar(
@@ -108,19 +116,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
-      bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(0),
-        child: Container(
-          height: 20,
-          decoration: BoxDecoration(
-            color: AppColors.bg(context),
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(20),
-              topRight: Radius.circular(20),
-            ),
-          ),
-        ),
-      ),
     );
   }
 
@@ -129,27 +124,12 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: BoxDecoration(
         color: AppColors.card(context),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border(context)),
       ),
       child: TextField(
-        decoration: InputDecoration(
-          hintText: 'Search providers or services...',
-          hintStyle:
-          TextStyle(color: Colors.grey.shade400, fontSize: 14),
-          prefixIcon:
-          Icon(Icons.search_rounded, color: Colors.grey.shade400),
-          suffixIcon: _searchQuery.isNotEmpty
-              ? IconButton(
-            icon: Icon(Icons.close_rounded,
-                color: Colors.grey.shade400),
-            onPressed: () => setState(() => _searchQuery = ''),
-          )
-              : null,
+        decoration: const InputDecoration(
+          hintText: 'Search providers...',
           border: InputBorder.none,
-          enabledBorder: InputBorder.none,
-          focusedBorder: InputBorder.none,
-          filled: false,
-          contentPadding: const EdgeInsets.symmetric(vertical: 14),
+          prefixIcon: Icon(Icons.search),
         ),
         onChanged: (v) => setState(() => _searchQuery = v),
       ),
@@ -157,82 +137,55 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildBanner() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF1565C0), Color(0xFF1E88E5)],
-          ),
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Need a service?',
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                      )),
-                  const SizedBox(height: 6),
-                  Text(
-                      'Book trusted professionals near you in minutes.',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: Colors.white70)),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Icon(Icons.home_repair_service_rounded,
-                size: 52, color: Colors.white24),
-          ],
-        ),
-      ),
-    );
+    return const SizedBox();
   }
 
+  // 🔥 UPDATED CATEGORY CARD WITH ICON
   Widget _buildCategoryCard(BuildContext context, int index) {
+    final category = _categories[index];
+
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => ServiceListScreen(
-              category: _categories[index]['name'] as String),
+            category: category['name'],
+          ),
         ),
       ),
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.card(context),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border(context)),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+
+            // ✅ ICON (LOGO)
             Container(
-              width: 56,
-              height: 56,
+              width: 60,
+              height: 60,
               decoration: BoxDecoration(
                 color: _categoryColors[index],
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(16),
               ),
-              child: Icon(_categories[index]['icon'] as IconData,
-                  size: 28, color: _categoryIconColors[index]),
+              child: Icon(
+                category['icon'],
+                size: 30,
+                color: _categoryIconColors[index],
+              ),
             ),
+
             const SizedBox(height: 12),
-            Text(_categories[index]['name'] as String,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                )),
+
+            // ✅ TEXT
+            Text(
+              category['name'],
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ],
         ),
       ),
@@ -240,109 +193,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildSearchResults() {
-    return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: FirestoreService().getProviders(),
-      builder: (context, snapshot) {
-        final all = snapshot.data ?? [];
-        final filtered = all
-            .where((p) =>
-        (p['name'] as String? ?? '')
-            .toLowerCase()
-            .contains(_searchQuery.toLowerCase()) ||
-            (p['service'] as String? ?? '')
-                .toLowerCase()
-                .contains(_searchQuery.toLowerCase()))
-            .toList();
-
-        if (filtered.isEmpty) {
-          return SliverFillRemaining(
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.search_off_rounded,
-                      size: 64, color: Colors.grey.shade300),
-                  const SizedBox(height: 16),
-                  Text('No providers found',
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(color: Colors.grey.shade400)),
-                  const SizedBox(height: 6),
-                  Text('Try a different name or service',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: Colors.grey.shade400)),
-                ],
-              ),
-            ),
-          );
-        }
-
-        return SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          sliver: SliverList(
-            delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                final p = filtered[index];
-                final name = p['name'] as String? ?? '';
-                final service = p['service'] as String? ?? '';
-                final total = (p['totalRating'] ?? 0) as num;
-                final count = (p['ratingCount'] ?? 0) as num;
-                final rating = count > 0
-                    ? (total / count).toStringAsFixed(1)
-                    : 'New';
-
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  decoration: BoxDecoration(
-                    color: AppColors.card(context),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.border(context)),
-                  ),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 6),
-                    leading: CircleAvatar(
-                      backgroundColor: AppColors.blueLight,
-                      child: Text(
-                        name.isNotEmpty ? name[0].toUpperCase() : 'U',
-                        style: const TextStyle(
-                            color: AppColors.blue,
-                            fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                    title: Text(name,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w600)),
-                    subtitle: Text('$service • ⭐ $rating',
-                        style: const TextStyle(fontSize: 13)),
-                    trailing: Icon(Icons.arrow_forward_ios_rounded,
-                        size: 14, color: Colors.grey.shade400),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => ProviderDetailsScreen(
-                          provider: {
-                            'id': p['id'] as String,
-                            'name': name,
-                            'exp': p['exp'] as String? ?? 'N/A',
-                            'phone': p['phone'] as String? ?? 'N/A',
-                            'rating': rating,
-                          },
-                          category: service,
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              },
-              childCount: filtered.length,
-            ),
-          ),
-        );
-      },
+    return const SliverToBoxAdapter(
+      child: Center(child: Text("Search Coming Soon")),
     );
   }
 }

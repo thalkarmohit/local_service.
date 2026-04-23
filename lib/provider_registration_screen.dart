@@ -1,5 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'firestore_service.dart';
 
 class ProviderRegistrationScreen extends StatefulWidget {
@@ -16,9 +19,12 @@ class _ProviderRegistrationScreenState
   final _nameController = TextEditingController();
   final _expController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _areaController = TextEditingController();
 
   String? _selectedCategory;
   bool _isLoading = false;
+  File? _selectedImage;
+  String? _uploadedImageUrl;
 
   static const List<String> _categories = [
     'Plumber', 'Electrician', 'Doctor',
@@ -30,7 +36,114 @@ class _ProviderRegistrationScreenState
     _nameController.dispose();
     _expController.dispose();
     _phoneController.dispose();
+    _areaController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Select Photo',
+                style: TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () async {
+                      Navigator.pop(ctx);
+                      await _getImage(ImageSource.gallery);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE3F2FD),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Column(
+                        children: [
+                          Icon(Icons.photo_library_rounded,
+                              size: 36, color: Color(0xFF1565C0)),
+                          SizedBox(height: 8),
+                          Text('Gallery',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF1565C0))),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () async {
+                      Navigator.pop(ctx);
+                      await _getImage(ImageSource.camera);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE8F5E9),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Column(
+                        children: [
+                          Icon(Icons.camera_alt_rounded,
+                              size: 36, color: Color(0xFF2E7D32)),
+                          SizedBox(height: 8),
+                          Text('Camera',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF2E7D32))),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _getImage(ImageSource source) async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: source,
+      imageQuality: 70,
+      maxWidth: 600,
+    );
+    if (picked != null) {
+      setState(() => _selectedImage = File(picked.path));
+    }
+  }
+
+  Future<String?> _uploadImage(String providerName) async {
+    if (_selectedImage == null) return null;
+    try {
+      final ref = FirebaseStorage.instance
+          .ref()
+          .child('provider_images')
+          .child('${providerName.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}.jpg');
+
+      await ref.putFile(_selectedImage!);
+      return await ref.getDownloadURL();
+    } catch (e) {
+      return null;
+    }
   }
 
   @override
@@ -49,6 +162,10 @@ class _ProviderRegistrationScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Profile image picker
+              _buildImagePicker(),
+              const SizedBox(height: 28),
+
               _sectionLabel('Personal Details'),
               const SizedBox(height: 12),
               _buildField(
@@ -56,8 +173,9 @@ class _ProviderRegistrationScreenState
                 label: 'Full Name',
                 hint: 'e.g. Rahul Sharma',
                 icon: Icons.person_outline_rounded,
-                validator: (v) =>
-                (v == null || v.trim().isEmpty) ? 'Please enter your name' : null,
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? 'Please enter your name'
+                    : null,
               ),
               const SizedBox(height: 14),
               _buildField(
@@ -68,12 +186,24 @@ class _ProviderRegistrationScreenState
                 keyboardType: TextInputType.phone,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 validator: (v) {
-                  if (v == null || v.trim().isEmpty) return 'Please enter your phone';
+                  if (v == null || v.trim().isEmpty)
+                    return 'Please enter your phone';
                   if (v.length < 10) return 'Enter a valid 10-digit number';
                   return null;
                 },
               ),
+              const SizedBox(height: 14),
+              _buildField(
+                controller: _areaController,
+                label: 'Area / Location',
+                hint: 'e.g. Andheri West, Mumbai',
+                icon: Icons.location_on_outlined,
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? 'Please enter your area'
+                    : null,
+              ),
               const SizedBox(height: 28),
+
               _sectionLabel('Service Details'),
               const SizedBox(height: 12),
               _buildCategoryDropdown(),
@@ -85,10 +215,12 @@ class _ProviderRegistrationScreenState
                 icon: Icons.work_history_outlined,
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                validator: (v) =>
-                (v == null || v.trim().isEmpty) ? 'Please enter your experience' : null,
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? 'Please enter your experience'
+                    : null,
               ),
               const SizedBox(height: 36),
+
               ElevatedButton(
                 onPressed: _isLoading ? null : _submit,
                 child: _isLoading
@@ -106,13 +238,73 @@ class _ProviderRegistrationScreenState
               Center(
                 child: Text(
                   'Your profile will be visible to customers immediately.',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                  style:
+                  TextStyle(fontSize: 12, color: Colors.grey.shade500),
                   textAlign: TextAlign.center,
                 ),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildImagePicker() {
+    return Center(
+      child: Column(
+        children: [
+          GestureDetector(
+            onTap: _pickImage,
+            child: Stack(
+              children: [
+                Container(
+                  width: 110,
+                  height: 110,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(0xFFE3F2FD),
+                    border: Border.all(
+                        color: const Color(0xFF1565C0), width: 2),
+                    image: _selectedImage != null
+                        ? DecorationImage(
+                      image: FileImage(_selectedImage!),
+                      fit: BoxFit.cover,
+                    )
+                        : null,
+                  ),
+                  child: _selectedImage == null
+                      ? const Icon(Icons.person_rounded,
+                      size: 56, color: Color(0xFF1565C0))
+                      : null,
+                ),
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1565C0),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                    child: const Icon(Icons.camera_alt_rounded,
+                        size: 16, color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            _selectedImage != null
+                ? 'Tap to change photo'
+                : 'Tap to add profile photo',
+            style: TextStyle(
+                fontSize: 13, color: Colors.grey.shade500),
+          ),
+        ],
       ),
     );
   }
@@ -167,7 +359,8 @@ class _ProviderRegistrationScreenState
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF1565C0), width: 1.5),
+          borderSide:
+          const BorderSide(color: Color(0xFF1565C0), width: 1.5),
         ),
       ),
       hint: const Text('Select your service'),
@@ -184,11 +377,18 @@ class _ProviderRegistrationScreenState
     setState(() => _isLoading = true);
 
     try {
+      // Upload image first if selected
+      String? imageUrl;
+      if (_selectedImage != null) {
+        imageUrl = await _uploadImage(_nameController.text.trim());
+      }
+
       await FirestoreService().addProvider(
         name: _nameController.text.trim(),
         service: _selectedCategory!,
         exp: '${_expController.text.trim()} years',
         phone: _phoneController.text.trim(),
+        imageUrl: imageUrl,
       );
 
       if (!mounted) return;

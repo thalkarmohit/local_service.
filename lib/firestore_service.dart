@@ -13,9 +13,15 @@ class FirestoreService {
 
   // ─── Collections ──────────────────────────────────────────────────────────
   CollectionReference get _providers => _db.collection('providers');
+
   CollectionReference get _bookings =>
       _db.collection('users').doc(_userId).collection('bookings');
+
+  // 🔥 NEW: Global bookings collection (for provider notifications later)
+  CollectionReference get _allBookings => _db.collection('bookings');
+
   CollectionReference get _reviews => _db.collection('reviews');
+
   CollectionReference get _favourites =>
       _db.collection('users').doc(_userId).collection('favourites');
 
@@ -40,6 +46,8 @@ class FirestoreService {
     required String service,
     required String exp,
     required String phone,
+    String? imageUrl,
+    String? area,
   }) async {
     await _providers.add({
       'name': name,
@@ -48,6 +56,8 @@ class FirestoreService {
       'phone': phone,
       'totalRating': 0,
       'ratingCount': 0,
+      'imageUrl': imageUrl ?? '',
+      'area': area ?? '',
       'createdAt': FieldValue.serverTimestamp(),
     });
   }
@@ -73,14 +83,19 @@ class FirestoreService {
         .toList());
   }
 
+  // 🔥 UPDATED FUNCTION (IMPORTANT)
   Future<String> addBooking({
+    required String providerId, // 🔥 NEW
     required String providerName,
     required String service,
     required String phone,
     required DateTime scheduledDate,
     required String scheduledTime,
   }) async {
-    final doc = await _bookings.add({
+
+    // 👉 1. Save in USER bookings (your current system)
+    final userDoc = await _bookings.add({
+      'providerId': providerId, // 🔥 NEW
       'providerName': providerName,
       'service': service,
       'phone': phone,
@@ -89,7 +104,21 @@ class FirestoreService {
       'scheduledTime': scheduledTime,
       'status': 'pending',
     });
-    return doc.id;
+
+    // 👉 2. ALSO save in GLOBAL bookings (for provider notifications)
+    await _allBookings.add({
+      'providerId': providerId,
+      'providerName': providerName,
+      'service': service,
+      'phone': phone,
+      'userId': _userId,
+      'scheduledDate': Timestamp.fromDate(scheduledDate),
+      'scheduledTime': scheduledTime,
+      'status': 'pending',
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    return userDoc.id;
   }
 
   Future<void> deleteBooking(String bookingId) async {

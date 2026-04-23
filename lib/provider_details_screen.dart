@@ -28,7 +28,8 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
     '4:00 PM', '5:00 PM', '6:00 PM',
   ];
 
-  String get _providerId => widget.provider['id'] ?? widget.provider['name'] ?? 'unknown';
+  String get _providerId =>
+      widget.provider['id'] ?? widget.provider['name'] ?? 'unknown';
 
   String get _initials {
     final name = widget.provider['name'] ?? 'U';
@@ -39,6 +40,29 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
   void initState() {
     super.initState();
     _currentRating = widget.provider['rating'] ?? 'New';
+  }
+
+  Widget _buildAvatar(double radius) {
+    final imageUrl = widget.provider['imageUrl'] ?? '';
+    if (imageUrl.isNotEmpty) {
+      return CircleAvatar(
+        radius: radius,
+        backgroundImage: NetworkImage(imageUrl),
+        backgroundColor: Colors.white24,
+      );
+    }
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: Colors.white24,
+      child: Text(
+        _initials,
+        style: TextStyle(
+          fontSize: radius * 0.6,
+          fontWeight: FontWeight.w700,
+          color: Colors.white,
+        ),
+      ),
+    );
   }
 
   @override
@@ -120,15 +144,7 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               const SizedBox(height: 70),
-              CircleAvatar(
-                radius: 44,
-                backgroundColor: Colors.white24,
-                child: Text(_initials,
-                    style: const TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white)),
-              ),
+              _buildAvatar(44),
               const SizedBox(height: 12),
               Text(widget.provider['name'] ?? '',
                   style: const TextStyle(
@@ -361,13 +377,14 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
               Row(
                 children: List.generate(
                   5,
-                      (i) => Icon(
-                    i < rating
-                        ? Icons.star_rounded
-                        : Icons.star_outline_rounded,
-                    size: 14,
-                    color: const Color(0xFFF9A825),
-                  ),
+                      (i) =>
+                      Icon(
+                        i < rating
+                            ? Icons.star_rounded
+                            : Icons.star_outline_rounded,
+                        size: 14,
+                        color: const Color(0xFFF9A825),
+                      ),
                 ),
               ),
             ],
@@ -397,217 +414,223 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) => Container(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-            top: 24,
-            left: 24,
-            right: 24,
-          ),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(24),
-              topRight: Radius.circular(24),
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEEEEEE),
-                    borderRadius: BorderRadius.circular(2),
+      builder: (ctx) =>
+          StatefulBuilder(
+            builder: (ctx, setSheetState) =>
+                Container(
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery
+                        .of(ctx)
+                        .viewInsets
+                        .bottom + 24,
+                    top: 24,
+                    left: 24,
+                    right: 24,
                   ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text('Schedule Booking',
-                  style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1A1A2E))),
-              const SizedBox(height: 4),
-              Text(
-                  'Book ${widget.provider["name"]} for ${widget.category}',
-                  style: const TextStyle(
-                      fontSize: 13, color: Color(0xFF888888))),
-              const SizedBox(height: 24),
-              const Text('Select Date',
-                  style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF1A1A2E))),
-              const SizedBox(height: 10),
-              GestureDetector(
-                onTap: () async {
-                  final now = DateTime.now();
-                  final picked = await showDatePicker(
-                    context: ctx,
-                    initialDate: now.add(const Duration(days: 1)),
-                    firstDate: now,
-                    lastDate: now.add(const Duration(days: 60)),
-                    builder: (context, child) => Theme(
-                      data: Theme.of(context).copyWith(
-                        colorScheme: const ColorScheme.light(
-                            primary: Color(0xFF1565C0)),
-                      ),
-                      child: child!,
-                    ),
-                  );
-                  if (picked != null) {
-                    setSheetState(() => selectedDate = picked);
-                  }
-                },
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 14),
-                  decoration: BoxDecoration(
-                    color: selectedDate != null
-                        ? const Color(0xFFE3F2FD)
-                        : const Color(0xFFF4F6FB),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: selectedDate != null
-                          ? const Color(0xFF1565C0)
-                          : const Color(0xFFEEEEEE),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(24),
+                      topRight: Radius.circular(24),
                     ),
                   ),
-                  child: Row(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.calendar_today_rounded,
-                          size: 18,
-                          color: selectedDate != null
-                              ? const Color(0xFF1565C0)
-                              : const Color(0xFFAAAAAA)),
-                      const SizedBox(width: 12),
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEEEEEE),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      const Text('Schedule Booking',
+                          style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF1A1A2E))),
+                      const SizedBox(height: 4),
                       Text(
-                        selectedDate != null
-                            ? DateFormat('EEEE, d MMMM yyyy')
-                            .format(selectedDate!)
-                            : 'Tap to choose a date',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: selectedDate != null
-                              ? FontWeight.w600
-                              : FontWeight.w400,
-                          color: selectedDate != null
-                              ? const Color(0xFF1565C0)
-                              : const Color(0xFFAAAAAA),
+                          'Book ${widget.provider["name"]} for ${widget
+                              .category}',
+                          style: const TextStyle(
+                              fontSize: 13, color: Color(0xFF888888))),
+                      const SizedBox(height: 24),
+                      const Text('Select Date',
+                          style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF1A1A2E))),
+                      const SizedBox(height: 10),
+                      GestureDetector(
+                        onTap: () async {
+                          final now = DateTime.now();
+                          final picked = await showDatePicker(
+                            context: ctx,
+                            initialDate: now.add(const Duration(days: 1)),
+                            firstDate: now,
+                            lastDate: now.add(const Duration(days: 60)),
+                            builder: (context, child) =>
+                                Theme(
+                                  data: Theme.of(context).copyWith(
+                                    colorScheme: const ColorScheme.light(
+                                        primary: Color(0xFF1565C0)),
+                                  ),
+                                  child: child!,
+                                ),
+                          );
+                          if (picked != null) {
+                            setSheetState(() => selectedDate = picked);
+                          }
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 14),
+                          decoration: BoxDecoration(
+                            color: selectedDate != null
+                                ? const Color(0xFFE3F2FD)
+                                : const Color(0xFFF4F6FB),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: selectedDate != null
+                                  ? const Color(0xFF1565C0)
+                                  : const Color(0xFFEEEEEE),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.calendar_today_rounded,
+                                  size: 18,
+                                  color: selectedDate != null
+                                      ? const Color(0xFF1565C0)
+                                      : const Color(0xFFAAAAAA)),
+                              const SizedBox(width: 12),
+                              Text(
+                                selectedDate != null
+                                    ? DateFormat('EEEE, d MMMM yyyy')
+                                    .format(selectedDate!)
+                                    : 'Tap to choose a date',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: selectedDate != null
+                                      ? FontWeight.w600
+                                      : FontWeight.w400,
+                                  color: selectedDate != null
+                                      ? const Color(0xFF1565C0)
+                                      : const Color(0xFFAAAAAA),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      const Text('Select Time Slot',
+                          style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF1A1A2E))),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _timeSlots.map((slot) {
+                          final isSelected = selectedTime == slot;
+                          return GestureDetector(
+                            onTap: () =>
+                                setSheetState(() => selectedTime = slot),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? const Color(0xFF1565C0)
+                                    : const Color(0xFFF4F6FB),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? const Color(0xFF1565C0)
+                                      : const Color(0xFFEEEEEE),
+                                ),
+                              ),
+                              child: Text(slot,
+                                  style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: isSelected
+                                          ? Colors.white
+                                          : const Color(0xFF555555))),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 28),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: ElevatedButton(
+                          onPressed:
+                          (selectedDate == null || selectedTime == null)
+                              ? null
+                              : () async {
+                            await FirestoreService().addBooking(
+                              providerId: _providerId, // ✅ FIX ADDED
+                              providerName: widget.provider['name'] ?? 'Unknown',
+                              service: widget.category,
+                              phone: widget.provider['phone'] ?? 'N/A',
+                              scheduledDate: selectedDate!,
+                              scheduledTime: selectedTime!,
+                            );
+                            // Fire notification
+                            await NotificationService()
+                                .showBookingConfirmation(
+                              providerName:
+                              widget.provider['name'] ?? 'Provider',
+                              service: widget.category,
+                              date: DateFormat('d MMM yyyy')
+                                  .format(selectedDate!),
+                              time: selectedTime!,
+                            );
+
+                            if (ctx.mounted) {
+                              Navigator.pop(ctx);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Booked for ${DateFormat('d MMM').format(
+                                        selectedDate!)} at $selectedTime ✅',
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1565C0),
+                            disabledBackgroundColor: const Color(0xFFCCCCCC),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14)),
+                          ),
+                          child: Text(
+                            selectedDate == null || selectedTime == null
+                                ? 'Select date & time to confirm'
+                                : 'Confirm Booking',
+                            style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white),
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              const Text('Select Time Slot',
-                  style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF1A1A2E))),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: _timeSlots.map((slot) {
-                  final isSelected = selectedTime == slot;
-                  return GestureDetector(
-                    onTap: () =>
-                        setSheetState(() => selectedTime = slot),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? const Color(0xFF1565C0)
-                            : const Color(0xFFF4F6FB),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: isSelected
-                              ? const Color(0xFF1565C0)
-                              : const Color(0xFFEEEEEE),
-                        ),
-                      ),
-                      child: Text(slot,
-                          style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: isSelected
-                                  ? Colors.white
-                                  : const Color(0xFF555555))),
-                    ),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 28),
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  onPressed:
-                  (selectedDate == null || selectedTime == null)
-                      ? null
-                      : () async {
-                    await FirestoreService().addBooking(
-                      providerName:
-                      widget.provider['name'] ?? 'Unknown',
-                      service: widget.category,
-                      phone:
-                      widget.provider['phone'] ?? 'N/A',
-                      scheduledDate: selectedDate!,
-                      scheduledTime: selectedTime!,
-                    );
-
-                    // Fire notification
-                    await NotificationService()
-                        .showBookingConfirmation(
-                      providerName:
-                      widget.provider['name'] ?? 'Provider',
-                      service: widget.category,
-                      date: DateFormat('d MMM yyyy')
-                          .format(selectedDate!),
-                      time: selectedTime!,
-                    );
-
-                    if (ctx.mounted) {
-                      Navigator.pop(ctx);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Booked for ${DateFormat('d MMM').format(selectedDate!)} at $selectedTime ✅',
-                          ),
-                        ),
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1565C0),
-                    disabledBackgroundColor: const Color(0xFFCCCCCC),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
-                  ),
-                  child: Text(
-                    selectedDate == null || selectedTime == null
-                        ? 'Select date & time to confirm'
-                        : 'Confirm Booking',
-                    style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white),
-                  ),
-                ),
-              ),
-            ],
           ),
-        ),
-      ),
     );
   }
 
@@ -618,127 +641,138 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen> {
 
     showDialog(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20)),
-          title: const Text('Rate & Review',
-              style: TextStyle(fontWeight: FontWeight.w700)),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'How was your experience with ${widget.provider["name"]}?',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      color: Color(0xFF888888), fontSize: 13),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(5, (i) {
-                    final star = i + 1;
-                    return GestureDetector(
-                      onTap: () =>
-                          setDialogState(() => selectedRating = star),
-                      child: Padding(
-                        padding:
-                        const EdgeInsets.symmetric(horizontal: 4),
-                        child: Icon(
-                          star <= selectedRating
-                              ? Icons.star_rounded
-                              : Icons.star_outline_rounded,
-                          size: 36,
-                          color: const Color(0xFFF9A825),
+      builder: (ctx) =>
+          StatefulBuilder(
+            builder: (ctx, setDialogState) =>
+                AlertDialog(
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20)),
+                  title: const Text('Rate & Review',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  content: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'How was your experience with ${widget
+                              .provider["name"]}?',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              color: Color(0xFF888888), fontSize: 13),
                         ),
-                      ),
-                    );
-                  }),
-                ),
-                const SizedBox(height: 8),
-                Text(_ratingLabel(selectedRating),
-                    style: const TextStyle(
-                        color: Color(0xFF1565C0),
-                        fontWeight: FontWeight.w600)),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: commentController,
-                  maxLines: 3,
-                  decoration: InputDecoration(
-                    hintText: 'Write your review here...',
-                    hintStyle:
-                    const TextStyle(color: Color(0xFFAAAAAA)),
-                    filled: true,
-                    fillColor: const Color(0xFFF4F6FB),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide:
-                      const BorderSide(color: Color(0xFFEEEEEE)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide:
-                      const BorderSide(color: Color(0xFFEEEEEE)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(
-                          color: Color(0xFF1565C0)),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(5, (i) {
+                            final star = i + 1;
+                            return GestureDetector(
+                              onTap: () =>
+                                  setDialogState(() => selectedRating = star),
+                              child: Padding(
+                                padding:
+                                const EdgeInsets.symmetric(horizontal: 4),
+                                child: Icon(
+                                  star <= selectedRating
+                                      ? Icons.star_rounded
+                                      : Icons.star_outline_rounded,
+                                  size: 36,
+                                  color: const Color(0xFFF9A825),
+                                ),
+                              ),
+                            );
+                          }),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(_ratingLabel(selectedRating),
+                            style: const TextStyle(
+                                color: Color(0xFF1565C0),
+                                fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: commentController,
+                          maxLines: 3,
+                          decoration: InputDecoration(
+                            hintText: 'Write your review here...',
+                            hintStyle:
+                            const TextStyle(color: Color(0xFFAAAAAA)),
+                            filled: true,
+                            fillColor: const Color(0xFFF4F6FB),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide:
+                              const BorderSide(color: Color(0xFFEEEEEE)),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide:
+                              const BorderSide(color: Color(0xFFEEEEEE)),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                  color: Color(0xFF1565C0)),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Cancel'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () async {
+                        // Update rating in Firestore
+                        await FirestoreService().updateProviderRating(
+                          providerId: _providerId,
+                          rating: selectedRating,
+                        );
+
+                        // Save review in Firestore
+                        if (commentController.text
+                            .trim()
+                            .isNotEmpty) {
+                          await FirestoreService().addReview(
+                            providerId: _providerId,
+                            comment: commentController.text.trim(),
+                            rating: selectedRating,
+                          );
+                        }
+
+                        if (ctx.mounted) {
+                          Navigator.pop(ctx);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Thanks for your review! ⭐')),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                          minimumSize: const Size(100, 44)),
+                      child: const Text('Submit'),
+                    ),
+                  ],
                 ),
-              ],
-            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                // Update rating in Firestore
-                await FirestoreService().updateProviderRating(
-                  providerId: _providerId,
-                  rating: selectedRating,
-                );
-
-                // Save review in Firestore
-                if (commentController.text.trim().isNotEmpty) {
-                  await FirestoreService().addReview(
-                    providerId: _providerId,
-                    comment: commentController.text.trim(),
-                    rating: selectedRating,
-                  );
-                }
-
-                if (ctx.mounted) {
-                  Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Thanks for your review! ⭐')),
-                  );
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(100, 44)),
-              child: const Text('Submit'),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
   String _ratingLabel(int r) {
     switch (r) {
-      case 1: return 'Poor';
-      case 2: return 'Fair';
-      case 3: return 'Good';
-      case 4: return 'Very Good';
-      case 5: return 'Excellent';
-      default: return '';
+      case 1:
+        return 'Poor';
+      case 2:
+        return 'Fair';
+      case 3:
+        return 'Good';
+      case 4:
+        return 'Very Good';
+      case 5:
+        return 'Excellent';
+      default:
+        return '';
     }
   }
 }

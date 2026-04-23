@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'firestore_service.dart';
 import 'provider_details_screen.dart';
 import 'app_colours.dart';
@@ -284,6 +283,8 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
               'exp': provider['exp'] as String? ?? 'N/A',
               'phone': provider['phone'] as String? ?? 'N/A',
               'rating': rating,
+              'imageUrl': provider['imageUrl'] as String? ?? '',
+              'area': provider['area'] as String? ?? '',
             },
             category: widget.category,
           ),
@@ -300,15 +301,7 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
           padding: const EdgeInsets.all(14),
           child: Row(
             children: [
-              CircleAvatar(
-                radius: 30,
-                backgroundColor: const Color(0xFFE3F2FD),
-                child: Text(initials,
-                    style: const TextStyle(
-                        color: Color(0xFF1565C0),
-                        fontWeight: FontWeight.w700,
-                        fontSize: 16)),
-              ),
+              _buildProviderAvatar(provider, initials, 30),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -329,9 +322,23 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
                       ],
                     ),
                     const SizedBox(height: 4),
-                    Text(widget.category,
-                        style: TextStyle(
-                            color: Colors.grey.shade500, fontSize: 13)),
+                    Row(
+                      children: [
+                        Icon(Icons.location_on_outlined,
+                            size: 13, color: Colors.grey.shade400),
+                        const SizedBox(width: 3),
+                        Expanded(
+                          child: Text(
+                            (provider['area'] as String? ?? '').isNotEmpty
+                                ? provider['area'] as String
+                                : widget.category,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                color: Colors.grey.shade500, fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 8),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -370,6 +377,27 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildProviderAvatar(
+      Map<String, dynamic> provider, String initials, double radius) {
+    final imageUrl = provider['imageUrl'] as String? ?? '';
+    if (imageUrl.isNotEmpty) {
+      return CircleAvatar(
+        radius: radius,
+        backgroundImage: NetworkImage(imageUrl),
+        backgroundColor: const Color(0xFFE3F2FD),
+      );
+    }
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: const Color(0xFFE3F2FD),
+      child: Text(initials,
+          style: const TextStyle(
+              color: Color(0xFF1565C0),
+              fontWeight: FontWeight.w700,
+              fontSize: 16)),
     );
   }
 
